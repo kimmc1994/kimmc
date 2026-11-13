@@ -1,6 +1,33 @@
 {
  "version": 1,
- "shows": [],
+ "shows": [
+  {
+   "id": "mwfd72jy2689x",
+   "name": "Thôi Nôi Phan Thiết",
+   "host": "",
+   "bauId": "mwfd72jya7sf5",
+   "bauName": "Âm Thanh Phát Triển",
+   "address": "Phan Thiết",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-11-17",
+   "lunar": {
+    "d": 9,
+    "m": 10,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "17:00",
+   "repeat": "none",
+   "received": 600000,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1794597802414,
+   "updatedAt": 1794597804385
+  }
+ ],
  "bauShows": [
   {
    "id": "mwfcxr5qzoguv",
