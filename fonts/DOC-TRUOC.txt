@@ -1,0 +1,11 @@
+FONT SVN-AVO (không bắt buộc)
+
+App đang dùng font "Nunito" (miễn phí, đầy đủ tiếng Việt, nét tròn giống SVN-Avo).
+
+Nếu bạn CÓ file font SVN-Avo hợp lệ (mua / được cấp quyền), làm như sau:
+1. Đổi tên file thường thành:  SVN-Avo.ttf      (hoặc SVN-Avo.woff2)
+2. Đổi tên file đậm thành:     SVN-Avo-Bold.ttf (hoặc SVN-Avo-Bold.woff2)
+3. Tải 2 file đó lên thư mục "fonts" trong kho GitHub kim1994.
+   Vercel tự cập nhật, app sẽ tự dùng SVN-Avo.
+
+Không có file thì cứ để trống thư mục này, app vẫn chạy bình thường.

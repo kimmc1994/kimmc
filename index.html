@@ -1,207 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Quản Lý $ Của Kim</title>
-<meta name="theme-color" content="#f2f2f7">
+<meta name="description" content="Lịch âm dương, quản lý show và thu chi của Kim">
+<meta name="theme-color" content="#EFE7F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0E1A" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Của Kim">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" href="icons/icon-192.png">
-<style>
-/* Đặt file font SVN-Avo vào thư mục fonts/ (SVN-Avo.woff2 hoặc .ttf). Không có thì dùng font hệ thống. */
-@font-face{font-family:'SVN-Avo';src:local('SVN-Avo'),local('SVN Avo'),url('fonts/SVN-Avo.woff2') format('woff2'),url('fonts/SVN-Avo.ttf') format('truetype');font-display:swap}
-:root{--bg:#eef1f5;--card:rgba(255,255,255,.72);--gl:rgba(255,255,255,.66);--tx:#1c1c1e;--t2:#6e6e73;--ln:rgba(60,60,67,.14);--ac:#0a7f5c;--red:#ff3b30;--or:#ff9500;--r:22px}
-@media(prefers-color-scheme:dark){:root{--bg:#000;--card:rgba(44,44,46,.72);--gl:rgba(38,38,42,.66);--tx:#f2f2f7;--t2:#a1a1a6;--ln:rgba(235,235,245,.16);--ac:#30d19a}}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{font-size:17px}
-body{margin:0;font-family:'SVN-Avo','Avo',-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:var(--tx);background:var(--bg);background-image:radial-gradient(60% 40% at 15% 0,rgba(10,127,92,.22),transparent),radial-gradient(50% 40% at 100% 10%,rgba(255,59,48,.14),transparent);background-attachment:fixed;min-height:100vh;padding:calc(env(safe-area-inset-top) + 76px) 14px calc(env(safe-area-inset-bottom) + 110px);line-height:1.35}
-header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 16px 10px;background:var(--gl);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--ln)}
-header h1{flex:1;margin:0;font-size:1.25rem;font-weight:800}
-button,.btn{font:inherit;color:inherit;border:0;cursor:pointer}
-.pill{background:var(--ac);color:#fff;padding:9px 18px;border-radius:99px;font-weight:700;font-size:.95rem}
-.gb{position:relative;width:44px;height:44px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:1.3rem}
-.gb b{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;font-size:.72rem;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 5px}
-main{max-width:1100px;margin:0 auto}
-.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
-.mo,.card{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:var(--r);padding:14px;border:1px solid var(--ln);margin-bottom:12px}
-.mo{margin:0}
-.mo h2{margin:2px 4px 10px;font-size:1.3rem}
-.g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.wd{text-align:center;font-size:.8rem;color:var(--t2);font-weight:700;padding-bottom:2px}
-.wd:nth-child(7){color:var(--red)}
-.c{position:relative;border-radius:14px;min-height:62px;padding:5px 2px 3px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center}
-.c b{font-size:1.15rem;font-weight:800}
-.c i{font-style:normal;font-size:.78rem;color:var(--t2);font-weight:300}
-.c u{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--or)}
-.c em{font-style:normal;font-size:.62rem;font-weight:700;line-height:1.1;margin-top:1px}
-.c.td{outline:2px solid var(--ac)}
-.c.ev{background:var(--red);color:#fff}.c.ev i{color:rgba(255,255,255,.85)}.c.ev u{background:#fff}
-.hl{margin:10px 4px 0;font-size:.92rem;color:var(--t2)}.hl div{padding:2px 0}.hl b{color:var(--tx)}
-h3{margin:0;font-size:1.08rem}.sub{color:var(--t2);font-size:.92rem}
-.row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.tag{background:var(--ac);color:#fff;border-radius:99px;font-size:.75rem;padding:3px 10px;white-space:nowrap}
-.card p{margin:4px 0;font-size:.98rem}
-.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.ib,.sb{display:inline-flex;align-items:center;gap:6px;background:rgba(120,120,128,.16);border-radius:99px;padding:8px 14px;font-size:.92rem;text-decoration:none;color:var(--tx);font-weight:600}
-.ib img{width:22px;height:22px;border-radius:6px}
-.sb.red{color:var(--red)}
-.money{display:flex;gap:14px;margin-top:8px;font-weight:700;color:var(--ac)}
-.seg{display:flex;background:rgba(120,120,128,.16);border-radius:99px;padding:3px;margin:0 0 12px}
-.seg button{flex:1;background:none;padding:9px;border-radius:99px;font-weight:700}.seg .on{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.15)}
-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:20;display:flex;gap:2px;background:var(--gl);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border:1px solid var(--ln);border-radius:99px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.18);width:min(94vw,560px)}
-nav button{flex:1;background:none;border-radius:99px;padding:8px 2px;font-size:.78rem;font-weight:700;color:var(--t2);display:flex;flex-direction:column;align-items:center;gap:1px}
-nav button span{font-size:1.35rem}nav .on{background:rgba(10,127,92,.16);color:var(--ac)}
-#ov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:none;align-items:flex-end;justify-content:center}
-#ov.on{display:flex}
-.sh{background:var(--bg);width:min(100%,640px);max-height:92vh;overflow:auto;border-radius:28px 28px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom) + 24px)}
-@media(min-width:700px){#ov{align-items:center}.sh{border-radius:28px}}
-.grab{width:40px;height:5px;border-radius:3px;background:var(--ln);margin:2px auto 12px}
-label{display:block;font-weight:700;font-size:.9rem;margin:12px 0 5px}
-input,select,textarea{width:100%;font:inherit;font-size:1rem;padding:12px 14px;border-radius:14px;border:1px solid var(--ln);background:var(--card);color:var(--tx)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.three{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px}
-.pv{font-size:.9rem;color:var(--ac);margin-top:6px;font-weight:600}
-.big{width:100%;margin-top:18px;padding:15px;font-size:1.05rem;border-radius:16px;background:var(--ac);color:#fff;font-weight:800}
-.big.g2{background:rgba(120,120,128,.2);color:var(--tx)}
-.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)}.kv:last-child{border:0}
-.kv.s{font-weight:800;font-size:1.1rem}.in{color:var(--ac)}.out{color:var(--red)}
-.bar{height:12px;border-radius:6px;background:rgba(120,120,128,.2);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--ac)}
-.empty{text-align:center;color:var(--t2);padding:30px 10px}
-h4{margin:14px 4px 8px;font-size:1.05rem}
-</style>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quản Lý $ Của Kim">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<header><h1>Quản Lý $ Của Kim</h1><div id="hr" style="display:flex;gap:10px;align-items:center"></div></header>
-<main id="app"></main>
-<nav id="tabs"></nav>
-<div id="ov" onclick="closeSheet()"></div>
-<script>
-/* ===== Lịch âm (thuật toán Hồ Ngọc Đức, múi giờ +7) ===== */
-const TZ=7,PI=Math.PI,fl=Math.floor;
-function jd(d,m,y){const a=fl((14-m)/12),Y=y+4800-a,M=m+12*a-3;return d+fl((153*M+2)/5)+365*Y+fl(Y/4)-fl(Y/100)+fl(Y/400)-32045}
-function jdd(j){const a=j+32044,b=fl((4*a+3)/146097),c=a-fl(146097*b/4),d=fl((4*c+3)/1461),e=c-fl(1461*d/4),m=fl((5*e+2)/153);return[e-fl((153*m+2)/5)+1,m+3-12*fl(m/10),100*b+d-4800+fl(m/10)]}
-function nm(k){const T=k/1236.85,T2=T*T,T3=T2*T,r=PI/180;let J=2415020.75933+29.53058868*k+0.0001178*T2-0.000000155*T3+0.00033*Math.sin((166.56+132.87*T-0.009173*T2)*r);const M=359.2242+29.10535608*k-0.0000333*T2-0.00000347*T3,P=306.0253+385.81691806*k+0.0107306*T2+0.00001236*T3,F=21.2964+390.67050646*k-0.0016528*T2-0.00000239*T3,s=Math.sin;
-let C=(0.1734-0.000393*T)*s(M*r)+0.0021*s(2*r*M)-0.4068*s(P*r)+0.0161*s(r*2*P)-0.0004*s(r*3*P)+0.0104*s(r*2*F)-0.0051*s(r*(M+P))-0.0074*s(r*(M-P))+0.0004*s(r*(2*F+M))-0.0004*s(r*(2*F-M))-0.0006*s(r*(2*F+P))+0.001*s(r*(2*F-P))+0.0005*s(r*(2*P+M));
-const dt=T<-11?0.001+0.000839*T+0.0002261*T2-0.00000845*T3-0.000000081*T*T3:-0.000278+0.000265*T+0.000262*T2;return J+C-dt}
-const nmd=k=>fl(nm(k)+.5+TZ/24);
-function sl(n){const T=(n-.5-TZ/24-2451545)/36525,T2=T*T,r=PI/180,M=357.5291+35999.0503*T-0.0001559*T2-0.00000048*T*T2,L0=280.46645+36000.76983*T+0.0003032*T2;let L=(L0+(1.9146-0.004817*T-0.000014*T2)*Math.sin(r*M)+(0.019993-0.000101*T)*Math.sin(r*2*M)+0.00029*Math.sin(r*3*M))*r;L-=PI*2*fl(L/(PI*2));return fl(L/PI*6)}
-function m11(y){const o=jd(31,12,y)-2415021,k=fl(o/29.530588853);let n=nmd(k);if(sl(n)>=9)n=nmd(k-1);return n}
-function leapOff(a){const k=fl((a-2415021.076998695)/29.530588853+.5);let i=1,arc=sl(nmd(k+i)),last;do{last=arc;i++;arc=sl(nmd(k+i))}while(arc!=last&&i<14);return i-1}
-const memo={};
-function lunar(d,m,y){const key=d+'/'+m+'/'+y;if(memo[key])return memo[key];const dn=jd(d,m,y);let k=fl((dn-2415021.076998695)/29.530588853),ms=nmd(k+1);if(ms>dn)ms=nmd(k);let a=m11(y),b=a,ly;if(a>=ms){ly=y;a=m11(y-1)}else{ly=y+1;b=m11(y+1)}
-const ld=dn-ms+1,df=fl((ms-a)/29);let lm=df+11,lp=0;if(b-a>365){const lo=leapOff(a);if(df>=lo){lm=df+10;if(df==lo)lp=1}}if(lm>12)lm-=12;if(lm>=11&&df<4)ly--;return memo[key]=[ld,lm,ly,lp]}
-function solar(ld,lm,ly,lp){let a,b;if(lm<11){a=m11(ly-1);b=m11(ly)}else{a=m11(ly);b=m11(ly+1)}const k=fl(.5+(a-2415021.076998695)/29.530588853);let off=lm-11;if(off<0)off+=12;if(b-a>365){const lo=leapOff(a);let lmn=lo-2;if(lmn<0)lmn+=12;if(lp&&lm!=lmn)return null;if(lp||off>=lo)off++}return jdd(nmd(k+off)+ld-1)}
+<div class="wall" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="statusfade" aria-hidden="true"></div>
 
-/* ===== Dữ liệu ===== */
-const K='kimmc_v1',PW='08051994@';
-let D={shows:[],bosses:[],cash:[],nt:{}};
-try{D=Object.assign(D,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(D))}catch(e){alert('Bộ nhớ đầy, hãy xóa bớt dữ liệu năm cũ.')}OM=null};
-let auth=localStorage.getItem('kim_auth')==='1',tab='cal',OM=null,cd=ymd(new Date()),rv={m:'m',mo:ymd(new Date()).slice(0,7),yr:new Date().getFullYear()};
-const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
-function ymd(t){return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate())}
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>(n||0).toLocaleString('vi-VN')+'đ',num=v=>+String(v).replace(/\D/g,'')||0;
-const WD=['CN','T2','T3','T4','T5','T6','T7'];
+<header class="topbar glass">
+  <div class="brand"><img src="/icons/icon-192.png" alt="" width="36" height="36"><h1>Quản Lý $ Của Kim</h1></div>
+  <div id="hdr-right" class="hdr-right"></div>
+</header>
 
-/* ===== Ngày lễ ===== */
-const HS={'1/1':'Tết Dương lịch','14/2':'Valentine','8/3':'Quốc tế Phụ nữ','30/4':'Giải phóng miền Nam','1/5':'Quốc tế Lao động','1/6':'Quốc tế Thiếu nhi','2/9':'Quốc khánh','20/10':'Phụ nữ Việt Nam','20/11':'Nhà giáo Việt Nam','24/12':'Giáng sinh'};
-const HL={'1/1':'Tết Nguyên Đán (mùng 1)','2/1':'Tết Nguyên Đán (mùng 2)','3/1':'Tết Nguyên Đán (mùng 3)','15/1':'Rằm tháng Giêng','10/3':'Giỗ Tổ Hùng Vương','15/4':'Phật Đản','5/5':'Tết Đoan Ngọ','15/7':'Vu Lan','15/8':'Tết Trung Thu','23/12':'Ông Táo chầu trời'};
-function hol(d,m,y){const l=lunar(d,m,y),r=[];if(HS[d+'/'+m])r.push(HS[d+'/'+m]);if(!l[3]&&HL[l[0]+'/'+l[1]])r.push(HL[l[0]+'/'+l[1]]);return r}
+<main class="app">
+  <section id="view-home" class="view" aria-label="Lịch"></section>
+  <section id="view-shows" class="view" aria-label="Show" hidden></section>
+  <section id="view-money" class="view" aria-label="Thu chi" hidden></section>
+  <section id="view-report" class="view" aria-label="Báo cáo" hidden></section>
+  <section id="view-settings" class="view" aria-label="Cài đặt" hidden></section>
+</main>
 
-/* ===== Show ===== */
-function occAll(){if(OM)return OM.list;const list=[],map={};if(auth)D.shows.forEach(s=>{for(let k=0;k<(s.rep?8:1);k++){let r;if(s.t=='l'){r=solar(s.d,s.m,s.y+k,s.lp)||solar(s.d,s.m,s.y+k,0)}else r=[s.d,s.m,s.y+k];if(!r)continue;const o={s,d:r[0],m:r[1],y:r[2],base:!k};list.push(o);(map[r[2]+'-'+r[1]+'-'+r[0]]??=[]).push(o)}});
-Object.values(map).forEach(a=>a.sort((x,y)=>x.s.time.localeCompare(y.s.time)));return(OM={list,map}).list}
-const evAt=(y,m,d)=>(occAll(),OM.map[y+'-'+m+'-'+d]||[]);
-function tl(t){if(!t)return'';const[h,m]=t.split(':').map(Number),p=h<11?'Sáng':h<13?'Trưa':h<18?'Chiều':'Tối';return`${p} ${h%12||12}:${pad(m)} ${h<12?'SA':'CH'} (${pad(h)}:${pad(m)})`}
-const hh=t=>{const[h,m]=t.split(':');return(+h)+'h'+(m!='00'?m:'')};
-const stOf=o=>{const[h,m]=(o.s.time||'00:00').split(':').map(Number);return new Date(o.y,o.m-1,o.d,h,m).getTime()};
-function alerts(){if(!auth)return[];const n=Date.now(),T=[[3*864e5,'Còn 3 ngày'],[864e5,'Còn 1 ngày'],[36e5,'Còn 1 giờ']],r=[];occAll().forEach(o=>{const st=stOf(o);let l=null;T.forEach(([a,x])=>{if(n>=st-a)l=x});if(l&&n<st+72e5)r.push({...o,msg:l,st})});return r.sort((a,b)=>a.st-b.st)}
-function ics(id,y,m,d){const o=occAll().find(o=>o.s.id==id&&o.y==y&&o.m==m&&o.d==d);if(!o)return;const s=o.s,[h,mi]=s.time.split(':').map(Number),f=(t)=>t.getFullYear()+pad(t.getMonth()+1)+pad(t.getDate())+'T'+pad(t.getHours())+pad(t.getMinutes())+'00',a=new Date(y,m-1,d,h,mi),b=new Date(a.getTime()+72e5),al=(t,x)=>`BEGIN:VALARM\r\nTRIGGER:-${t}\r\nACTION:DISPLAY\r\nDESCRIPTION:${x}\r\nEND:VALARM\r\n`;
-const tx=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//kimmc//VN\r\nBEGIN:VEVENT\r\nUID:${s.id}-${y}${m}${d}@kimmc\r\nDTSTAMP:${f(new Date())}\r\nDTSTART:${f(a)}\r\nDTEND:${f(b)}\r\nSUMMARY:Show: ${s.name}\r\nLOCATION:${(s.addr||'').replace(/[,;]/g,' ')}\r\nDESCRIPTION:Chủ tiệc ${s.host||''} - Bầu ${s.boss||''} - ${s.phone||''}\r\n${al('P3D','Còn 3 ngày: '+s.name)}${al('P1D','Còn 1 ngày: '+s.name)}${al('PT1H','Còn 1 giờ: '+s.name)}END:VEVENT\r\nEND:VCALENDAR`;
-const u=URL.createObjectURL(new Blob([tx],{type:'text/calendar'})),e=document.createElement('a');e.href=u;e.download='show-'+y+pad(m)+pad(d)+'.ics';document.body.appendChild(e);e.click();e.remove()}
-function dstr(y,m,d){const l=lunar(d,m,y);return`${WD[new Date(y,m-1,d).getDay()]} ${pad(d)}/${pad(m)}/${y} (âm ${l[0]}/${l[1]}${l[3]?' nhuận':''})`}
-function card(o,short){const s=o.s,p=(s.phone||'').replace(/\D/g,''),z=p.replace(/^0/,'84');
-return`<div class="card"><div class="row"><div><h3>${esc(s.name)}</h3><div class="sub">${dstr(o.y,o.m,o.d)}</div><div style="font-weight:800;color:var(--red);margin-top:2px">${tl(s.time)}</div></div>${s.rep?'<span class="tag">Lặp lại hằng năm</span>':''}</div>
-${s.host?`<p><b>Chủ tiệc:</b> ${esc(s.host)}</p>`:''}${s.boss?`<p><b>Bầu show:</b> ${esc(s.boss)}</p>`:''}${s.addr?`<p><b>Địa chỉ:</b> ${esc(s.addr)}</p>`:''}
-${o.base&&(s.fee||s.tip)?`<div class="money"><span>Nhận: ${fmt(s.fee)}</span><span>Bo: ${fmt(s.tip)}</span></div>`:''}
-<div class="btns">${p?`<a class="ib" href="tel:${p}"><img src="ic-phone.png" alt="">Gọi</a><a class="ib" target="_blank" rel="noopener" href="https://zalo.me/${z}"><img src="ic-zalo.png" alt="">Zalo</a>`:''}${s.map?`<a class="ib" target="_blank" rel="noopener" href="${esc(s.map)}">📍 Bản đồ</a>`:''}
-<button class="sb" onclick="ics('${s.id}',${o.y},${o.m},${o.d})">🔔 Thêm vào lịch nhắc</button><button class="sb" onclick="showForm('${s.id}')">Sửa</button><button class="sb red" onclick="delShow('${s.id}')">Xóa</button></div></div>`}
+<nav id="tabbar" class="tabbar glass" aria-label="Điều hướng"></nav>
+<div id="sheet" class="sheet" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-/* ===== Giao diện ===== */
-function month(y,m){const off=(new Date(y,m-1,1).getDay()+6)%7,n=new Date(y,m,0).getDate(),td=new Date();let g=['T2','T3','T4','T5','T6','T7','CN'].map(x=>`<div class="wd">${x}</div>`).join('')+'<div></div>'.repeat(off),hl='';
-for(let d=1;d<=n;d++){const l=lunar(d,m,y),h=hol(d,m,y),ev=evAt(y,m,d),isT=td.getFullYear()==y&&td.getMonth()+1==m&&td.getDate()==d;h.forEach(x=>hl+=`<div><b>${d}/${m}</b> (âm ${l[0]}/${l[1]}) – ${x}</div>`);
-g+=`<div class="c${isT?' td':''}${ev.length?' ev':''}" onclick="dayInfo(${y},${m},${d})"><b>${d}</b><i>${l[0]==1?l[0]+'/'+l[1]:l[0]}</i>${h.length?'<u></u>':''}${ev.length?`<em>${ev.map(e=>hh(e.s.time)).join(' ')}</em>`:''}</div>`}
-return`<div class="mo"><h2>Tháng ${m}/${y}</h2><div class="g">${g}</div><div class="hl">${hl||'Không có ngày lễ'}</div></div>`}
-function vCal(){const t=new Date();let h='';for(let i=0;i<3;i++){const x=new Date(t.getFullYear(),t.getMonth()+i,1);h+=month(x.getFullYear(),x.getMonth()+1)}return`<div class="months">${h}</div>`+(auth?'':'<p class="empty">Bấm “Đăng nhập” để thêm show và quản lý thu chi.</p>')}
-function vShows(){const now=new Date();now.setHours(0,0,0,0);const L=occAll().slice().sort((a,b)=>stOf(a)-stOf(b)),up=L.filter(o=>stOf(o)>=now),pa=L.filter(o=>stOf(o)<now).reverse();
-return`<button class="big" style="margin:0 0 14px" onclick="showForm()">+ Thêm show</button><h4>Sắp tới (${up.length})</h4>${up.map(o=>card(o)).join('')||'<p class="empty">Chưa có show sắp tới.</p>'}${pa.length?`<h4>Đã qua (${pa.length})</h4>`+pa.map(o=>card(o)).join(''):''}`}
-const CAT={hot:'Hớt tóc',mas:'Massage',bo:'Tiền bo tiệm tóc',khac:'Tiền khác',chi:'Chi'};
-function agg(f){const r={fee:0,tip:0,hot:0,mas:0,bo:0,khac:0,chi:0};D.shows.forEach(s=>{if(f(s.sy,s.sm,s.sd)){r.fee+=+s.fee||0;r.tip+=+s.tip||0}});D.cash.forEach(c=>{const[y,m,d]=c.date.split('-').map(Number);if(f(y,m,d))r[c.cat]+=c.amt});return r}
-function box(r){const sh=r.fee+r.tip,lam=r.hot+r.mas,tiem=lam+r.bo,thu=sh+tiem+r.khac,k=(a,b,c)=>`<div class="kv ${c||''}"><span>${a}</span><span>${b}</span></div>`;
-return`<div class="card"><h3>Thu từ show</h3>${k('Tiền nhận show',fmt(r.fee))}${k('Tiền bo show',fmt(r.tip))}${k('Cộng show',fmt(sh),'s')}</div>
-<div class="card"><h3>Thu từ tiệm tóc</h3>${k('Hớt tóc',fmt(r.hot))}${k('Massage',fmt(r.mas))}${k('Tiền làm (hớt tóc + massage)',fmt(lam),'s')}${k('Tiền bo tiệm tóc',fmt(r.bo),'s')}${k('Cộng tiệm tóc',fmt(tiem))}</div>
-<div class="card"><h3>Tổng kết</h3>${k('Thu khác',fmt(r.khac))}${k('Tổng thu',fmt(thu),'in s')}${k('Tổng chi',fmt(r.chi),'out s')}${k('Tiết kiệm được',fmt(thu-r.chi),'s '+(thu-r.chi<0?'out':'in'))}</div>`}
-function vCash(){const[y,m,d]=cd.split('-').map(Number),r=agg((a,b,c)=>a==y&&b==m&&c==d),it=D.cash.filter(c=>c.date==cd),ss=D.shows.filter(s=>s.sy==y&&s.sm==m&&s.sd==d&&(s.fee||s.tip));
-return`<div class="card"><div class="two" style="grid-template-columns:50px 1fr 50px"><button class="sb" onclick="mv(-1)">◀</button><input type="date" value="${cd}" onchange="cd=this.value;render()"><button class="sb" onclick="mv(1)">▶</button></div><div class="sub" style="margin-top:6px">${dstr(y,m,d)}</div>
-<div class="btns"><button class="pill" onclick="cashForm('thu')">+ Thu</button><button class="pill" style="background:var(--red)" onclick="cashForm('chi')">+ Chi</button></div></div>
-${ss.map(s=>`<div class="card"><div class="row"><div><b>Show: ${esc(s.name)}</b><div class="sub">Nhận ${fmt(s.fee)} · Bo ${fmt(s.tip)}</div></div><span class="in" style="font-weight:800">+${fmt((+s.fee||0)+(+s.tip||0))}</span></div></div>`).join('')}
-${it.map(c=>`<div class="card"><div class="row"><div><b>${CAT[c.cat]}</b><div class="sub">${esc(c.note||'')}</div></div><div style="text-align:right"><b class="${c.cat=='chi'?'out':'in'}">${c.cat=='chi'?'-':'+'}${fmt(c.amt)}</b><br><button class="sb red" style="margin-top:6px;padding:4px 12px" onclick="delCash('${c.id}')">Xóa</button></div></div></div>`).join('')}
-${!it.length&&!ss.length?'<p class="empty">Ngày này chưa có thu chi.</p>':''}<h4>Tổng kết trong ngày</h4>${box(r)}`}
-function vRep(){const isM=rv.m=='m',[y,m]=rv.mo.split('-').map(Number);let h=`<div class="seg"><button class="${isM?'on':''}" onclick="rv.m='m';render()">Theo tháng</button><button class="${isM?'':'on'}" onclick="rv.m='y';render()">Theo năm</button></div>`;
-if(isM){h+=`<input type="month" value="${rv.mo}" onchange="rv.mo=this.value||rv.mo;render()" style="margin-bottom:12px">`+box(agg((a,b)=>a==y&&b==m))+'<h4>Từng ngày</h4><div class="card">';let any=0;for(let d=1;d<=new Date(y,m,0).getDate();d++){const r=agg((a,b,c)=>a==y&&b==m&&c==d),t=r.fee+r.tip+r.hot+r.mas+r.bo+r.khac;if(t||r.chi){any=1;h+=`<div class="kv"><span>${pad(d)}/${pad(m)}</span><span><span class="in">+${fmt(t)}</span> <span class="out">-${fmt(r.chi)}</span> = <b>${fmt(t-r.chi)}</b></span></div>`}}h+=(any?'':'<p class="empty">Chưa có dữ liệu.</p>')+'</div>'}
-else{const Y=rv.yr;h+=`<div class="two" style="grid-template-columns:50px 1fr 50px;margin-bottom:12px"><button class="sb" onclick="rv.yr--;render()">◀</button><input type="number" value="${Y}" onchange="rv.yr=+this.value||rv.yr;render()"><button class="sb" onclick="rv.yr++;render()">▶</button></div>`+box(agg(a=>a==Y))+'<h4>Từng tháng</h4><div class="card">';for(let i=1;i<=12;i++){const r=agg((a,b)=>a==Y&&b==i),t=r.fee+r.tip+r.hot+r.mas+r.bo+r.khac;h+=`<div class="kv"><span>Tháng ${i}</span><span><span class="in">+${fmt(t)}</span> <span class="out">-${fmt(r.chi)}</span> = <b>${fmt(t-r.chi)}</b></span></div>`}h+='</div>'}return h}
-function vSet(){const s=localStorage.getItem(K)||'',by=(K.length+s.length)*2,pc=Math.min(100,by/5242880*100),yrs=[...new Set([...D.cash.map(c=>+c.date.slice(0,4)),...D.shows.map(x=>x.sy)])].sort();
-return`<div class="card"><h3>Dung lượng đã dùng</h3><div class="bar"><i style="width:${pc.toFixed(1)}%"></i></div><div class="sub">${(by/1024).toFixed(1)} KB / 5 MB (${pc.toFixed(2)}%)</div></div>
-<div class="card"><h3>Danh sách bầu show</h3>${D.bosses.map((b,i)=>`<div class="kv"><span>${esc(b.name)}<br><span class="sub">${esc(b.phone||'')}</span></span><button class="sb red" onclick="delBoss(${i})">Xóa</button></div>`).join('')||'<p class="sub">Chưa có bầu show.</p>'}
-<label>Tên bầu show</label><input id="bn"><label>SĐT</label><input id="bp" type="tel" inputmode="tel"><button class="big" onclick="addBoss()">+ Thêm bầu show</button></div>
-<div class="card"><h3>Xóa dữ liệu theo năm</h3><div class="two"><select id="dy">${yrs.map(y=>`<option>${y}</option>`).join('')||'<option value="">Không có dữ liệu</option>'}</select><button class="sb red" style="justify-content:center" onclick="delYear()">Xóa năm này</button></div></div>
-<div class="card"><h3>Sao lưu & thông báo</h3><div class="btns"><button class="sb" onclick="exp()">⬇ Xuất file sao lưu</button><label class="sb" style="margin:0">⬆ Nhập sao lưu<input type="file" accept=".json" style="display:none" onchange="imp(this)"></label><button class="sb" onclick="askNt()">🔔 Bật thông báo</button><button class="sb red" onclick="logout()">Đăng xuất</button></div></div>`}
-function render(){OM=null;$('#hr').innerHTML=(auth?`<button class="gb" onclick="bell()">🔔${alerts().length?`<b>${alerts().length}</b>`:''}</button>`:`<button class="pill" onclick="login()">Đăng nhập</button>`);
-if(!auth)tab='cal';$('#app').innerHTML={cal:vCal,shows:vShows,cash:vCash,rep:vRep,set:vSet}[tab]();
-$('#tabs').style.display=auth?'flex':'none';$('#tabs').innerHTML=[['cal','📅','Lịch'],['shows','🎤','Show'],['cash','💰','Thu chi'],['rep','📊','Báo cáo'],['set','⚙️','Cài đặt']].map(t=>`<button class="${tab==t[0]?'on':''}" onclick="tab='${t[0]}';render();scrollTo(0,0)"><span>${t[1]}</span>${t[2]}</button>`).join('');
-try{const n=alerts().length;n?navigator.setAppBadge&&navigator.setAppBadge(n):navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}}
-/* ===== Hộp thoại ===== */
-function sheet(h){$('#ov').innerHTML=`<div class="sh" onclick="event.stopPropagation()"><div class="grab"></div>${h}</div>`;$('#ov').classList.add('on')}
-function closeSheet(){$('#ov').classList.remove('on')}
-function login(){sheet(`<h3>Đăng nhập</h3><label>Mật khẩu</label><input id="pw" type="password" onkeydown="if(event.key=='Enter')doLogin()"><div id="pe" class="out" style="margin-top:6px"></div><button class="big" onclick="doLogin()">Đăng nhập</button>`);setTimeout(()=>$('#pw').focus(),100)}
-function doLogin(){if($('#pw').value===PW){auth=true;localStorage.setItem('kim_auth','1');closeSheet();render()}else $('#pe').textContent='Sai mật khẩu, nhập lại.'}
-function logout(){auth=false;localStorage.removeItem('kim_auth');render()}
-function dayInfo(y,m,d){const h=hol(d,m,y),ev=evAt(y,m,d);sheet(`<h3>${dstr(y,m,d)}</h3>${h.map(x=>`<p>🎉 ${x}</p>`).join('')}${ev.map(o=>card(o)).join('')}${auth?`<button class="big" onclick="showForm(null,'${y}-${m}-${d}')">+ Thêm show ngày này</button>`:''}`)}
-function bell(){const a=alerts();sheet(`<h3>Thông báo show</h3>${a.map(o=>`<div class="card"><b>${o.msg}: ${esc(o.s.name)}</b><div class="sub">${dstr(o.y,o.m,o.d)} · ${tl(o.s.time)}</div><button class="sb" style="margin-top:8px" onclick="ics('${o.s.id}',${o.y},${o.m},${o.d})">🔔 Thêm vào lịch nhắc (3 ngày, 1 ngày, 1 giờ)</button></div>`).join('')||'<p class="empty">Chưa có thông báo. Nhắc sẽ hiện trước show 3 ngày, 1 ngày và 1 giờ.</p>'}`)}
-function showForm(id,dt){const s=D.shows.find(x=>x.id==id)||{t:'l',rep:0,time:'08:00'};let d=s.d,m=s.m,y=s.y;if(!id){const x=dt?dt.split('-').map(Number):[new Date().getFullYear(),new Date().getMonth()+1,new Date().getDate()],l=lunar(x[2],x[1],x[0]);d=l[0];m=l[1];y=l[2]}
-sheet(`<h3>${id?'Sửa show':'Thêm show'}</h3><label>Tên show</label><input id="f_n" value="${esc(s.name||'')}"><label>Chủ tiệc</label><input id="f_h" value="${esc(s.host||'')}">
-<label>Bầu show</label><input id="f_b" list="bl" value="${esc(s.boss||'')}" oninput="bossPick()"><datalist id="bl">${D.bosses.map(b=>`<option value="${esc(b.name)}">`).join('')}</datalist>
-<label>Địa chỉ</label><input id="f_a" value="${esc(s.addr||'')}"><label>Ngày nhận show</label><select id="f_t" onchange="fPrev()"><option value="l" ${s.t!='s'?'selected':''}>Âm lịch</option><option value="s" ${s.t=='s'?'selected':''}>Dương lịch</option></select>
-<div class="three" style="margin-top:8px"><input id="f_d" type="number" inputmode="numeric" placeholder="Ngày" value="${d}" oninput="fPrev()"><input id="f_m" type="number" inputmode="numeric" placeholder="Tháng" value="${m}" oninput="fPrev()"><input id="f_y" type="number" inputmode="numeric" placeholder="Năm" value="${y}" oninput="fPrev()"></div>
-<label style="font-weight:400"><input id="f_l" type="checkbox" style="width:auto" ${s.lp?'checked':''} onchange="fPrev()"> Tháng nhuận (âm lịch)</label><div class="pv" id="pv"></div>
-<div class="two"><div><label>Giờ tiệc</label><input id="f_ti" type="time" value="${s.time}" oninput="fPrev()"></div><div><label>Lặp lại</label><select id="f_r"><option value="0">Không lặp lại</option><option value="1" ${s.rep?'selected':''}>Lặp lại hằng năm</option></select></div></div><div class="pv" id="pt"></div>
-<label>Link Google Map</label><input id="f_g" value="${esc(s.map||'')}"><label>SĐT</label><input id="f_p" type="tel" inputmode="tel" value="${esc(s.phone||'')}">
-<div class="two"><div><label>Tiền nhận show</label><input id="f_f" inputmode="numeric" value="${s.fee||''}"></div><div><label>Tiền bo show</label><input id="f_o" inputmode="numeric" value="${s.tip||''}"></div></div>
-<button class="big" onclick="saveShow('${id||''}')">Lưu show</button>`);fPrev()}
-function bossPick(){const b=D.bosses.find(x=>x.name==$('#f_b').value);if(b&&!$('#f_p').value)$('#f_p').value=b.phone||''}
-function fcalc(){const t=$('#f_t').value,d=+$('#f_d').value,m=+$('#f_m').value,y=+$('#f_y').value;if(!d||!m||!y||d>31||m>12)return null;if(t=='s'){const dt=new Date(y,m-1,d);if(dt.getMonth()!=m-1)return null;const l=lunar(d,m,y);return{sd:d,sm:m,sy:y,txt:`Âm lịch: ${l[0]}/${l[1]}/${l[2]}`}}const r=solar(d,m,y,$('#f_l').checked?1:0);return r?{sd:r[0],sm:r[1],sy:r[2],txt:`Dương lịch: ${dstr(r[2],r[1],r[0])}`}:null}
-function fPrev(){const c=fcalc();$('#pv').textContent=c?'= '+c.txt:'Ngày không hợp lệ';$('#pt').textContent=$('#f_ti').value?'Hiển thị: '+tl($('#f_ti').value):''}
-function saveShow(id){const c=fcalc(),n=$('#f_n').value.trim();if(!n)return alert('Nhập tên show');if(!c)return alert('Ngày không hợp lệ');if(!$('#f_ti').value)return alert('Nhập giờ tiệc');
-const s={id:id||Date.now().toString(36),name:n,host:$('#f_h').value.trim(),boss:$('#f_b').value.trim(),addr:$('#f_a').value.trim(),t:$('#f_t').value,d:+$('#f_d').value,m:+$('#f_m').value,y:+$('#f_y').value,lp:$('#f_l').checked&&$('#f_t').value=='l'?1:0,sd:c.sd,sm:c.sm,sy:c.sy,time:$('#f_ti').value,rep:+$('#f_r').value,map:$('#f_g').value.trim(),phone:$('#f_p').value.trim(),fee:num($('#f_f').value),tip:num($('#f_o').value)};
-const i=D.shows.findIndex(x=>x.id==id);i>=0?D.shows[i]=s:D.shows.push(s);save();closeSheet();render()}
-function delShow(id){if(confirm('Xóa show này?')){D.shows=D.shows.filter(s=>s.id!=id);save();closeSheet();render()}}
-function cashForm(t){sheet(`<h3>${t=='thu'?'Thêm khoản thu':'Thêm khoản chi'}</h3><label>Ngày</label><input id="c_d" type="date" value="${cd}">${t=='thu'?`<label>Loại thu</label><select id="c_c" onchange="$('#c_nw').style.display=this.value=='khac'?'block':'none'"><option value="hot">Hớt tóc</option><option value="mas">Massage</option><option value="bo">Tiền bo tiệm tóc</option><option value="khac">Tiền khác</option></select><div id="c_nw" style="display:none"><label>Nội dung tiền khác</label><input id="c_n0"></div>`:'<label>Nội dung chi</label><input id="c_n">'}<label>Số tiền</label><input id="c_a" inputmode="numeric" placeholder="0"><button class="big" onclick="saveCash('${t}')">Lưu</button>`)}
-function saveCash(t){const a=num($('#c_a').value),cat=t=='chi'?'chi':$('#c_c').value,note=t=='chi'?$('#c_n').value.trim():($('#c_n0')?.value.trim()||'');if(!a)return alert('Nhập số tiền');if((cat=='khac'||cat=='chi')&&!note)return alert('Nhập nội dung');D.cash.push({id:Date.now().toString(36),date:$('#c_d').value,cat,note,amt:a});cd=$('#c_d').value;save();closeSheet();render()}
-function delCash(id){if(confirm('Xóa khoản này?')){D.cash=D.cash.filter(c=>c.id!=id);save();render()}}
-function mv(n){const[y,m,d]=cd.split('-').map(Number);cd=ymd(new Date(y,m-1,d+n));render()}
-function addBoss(){const n=$('#bn').value.trim();if(!n)return alert('Nhập tên bầu show');D.bosses.push({name:n,phone:$('#bp').value.trim()});save();render()}
-function delBoss(i){D.bosses.splice(i,1);save();render()}
-function delYear(){const y=+$('#dy').value;if(!y)return;if(confirm(`Xóa toàn bộ thu chi và show của năm ${y}? Không thể khôi phục.`)){D.cash=D.cash.filter(c=>+c.date.slice(0,4)!=y);D.shows=D.shows.filter(s=>s.sy!=y);save();render()}}
-function exp(){const u=URL.createObjectURL(new Blob([JSON.stringify(D)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='kimmc-sao-luu-'+ymd(new Date())+'.json';a.click()}
-function imp(i){const f=i.files[0];if(!f)return;f.text().then(t=>{try{D=Object.assign({shows:[],bosses:[],cash:[],nt:{}},JSON.parse(t));save();render();alert('Đã nhập dữ liệu')}catch(e){alert('File không đúng')}})}
-function askNt(){if(!('Notification' in window))return alert('Trình duyệt chưa hỗ trợ thông báo.');Notification.requestPermission().then(p=>alert(p=='granted'?'Đã bật thông báo (hiện khi mở app).':'Chưa được cấp quyền.'))}
-function tick(){if(!auth||!('Notification' in window)||Notification.permission!='granted')return;alerts().forEach(o=>{const k=o.s.id+o.y+o.m+o.d+o.msg;if(!D.nt[k]){D.nt[k]=1;new Notification(o.msg+': '+o.s.name,{body:dstr(o.y,o.m,o.d)+' · '+tl(o.s.time),icon:'icons/icon-192.png'});save()}});render()}
-render();setInterval(tick,60000);setTimeout(tick,3000);
-</script>
+<script src="/lib/lunar.js"></script>
+<script src="/lib/core.js"></script>
+<script src="/js/app.js"></script>
 </body>
 </html>
