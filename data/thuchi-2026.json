@@ -10,6 +10,15 @@
    "amount": 240000,
    "note": "",
    "updatedAt": 1794597490188
+  },
+  {
+   "id": "mwfd10ts48mdb",
+   "date": "2026-11-13",
+   "type": "thu",
+   "cat": "botiem",
+   "amount": 340000,
+   "note": "",
+   "updatedAt": 1794597520240
   }
  ]
 }
