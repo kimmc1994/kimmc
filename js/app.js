@@ -44,13 +44,14 @@
     star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
     note: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>',
     money: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
-    out: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>'
+    out: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
+    lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
   };
   function icon(n) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
 
   var now0 = new Date();
   var state = {
-    token: localStorage.getItem('kim_token') || '',
+    token: sessionStorage.getItem('kim_token') || '', statKey: 'day', calIdx: 0,
     shows: [], baus: [], entries: {}, fresh: {}, loadingYear: {}, years: [], storage: null, vapidPublic: null,
     view: 'home',
     cal: { y: now0.getFullYear(), m: now0.getMonth() + 1 },
@@ -83,11 +84,11 @@
     saveCache();
   }
   function saveCache() {
-    try { localStorage.setItem('kim_cache', JSON.stringify({ shows: state.shows, baus: state.baus, entries: state.entries, years: state.years, storage: state.storage, vapidPublic: state.vapidPublic })); } catch (e) { }
+    try { sessionStorage.setItem('kim_cache', JSON.stringify({ shows: state.shows, baus: state.baus, entries: state.entries, years: state.years, storage: state.storage, vapidPublic: state.vapidPublic })); } catch (e) { }
   }
   function loadCache() {
     try {
-      var c = JSON.parse(localStorage.getItem('kim_cache') || 'null');
+      var c = JSON.parse(sessionStorage.getItem('kim_cache') || 'null');
       if (c) { state.shows = c.shows || []; state.baus = c.baus || []; state.entries = c.entries || {}; state.years = c.years || []; state.storage = c.storage || null; state.vapidPublic = c.vapidPublic || null; }
     } catch (e) { }
   }
@@ -242,9 +243,11 @@
   }
 
   /* ================= Vẽ giao diện ================= */
-  var TABS = [['home', 'cal', 'Lịch'], ['shows', 'mic', 'Show'], ['money', 'wallet', 'Thu chi'], ['report', 'chart', 'Báo cáo'], ['settings', 'gear', 'Cài đặt']];
+  var TABS = [['home', 'cal', 'Trang chủ'], ['shows', 'mic', 'Show'], ['money', 'wallet', 'Thu chi'], ['report', 'chart', 'Báo cáo'], ['settings', 'gear', 'Cài đặt']];
   function render() {
-    if (!logged() && state.view !== 'home') state.view = 'home';
+    document.body.classList.toggle('locked', !logged());
+    if (!logged()) { renderLock(); return; }
+    $('#lock').hidden = true; $('#lock').innerHTML = '';
     $('#tabbar').innerHTML = TABS.map(function (t) {
       return '<button class="tab' + (state.view === t[0] ? ' active' : '') + '" data-act="tab" data-view="' + t[0] + '" aria-label="' + t[2] + '">' + icon(t[1]) + '<span>' + t[2] + '</span></button>';
     }).join('');
@@ -259,58 +262,165 @@
   }
   function renderHeader() {
     var a = alerts();
-    $('#hdr-right').innerHTML = logged()
-      ? '<button class="icon-btn" data-act="bell" aria-label="Thông báo show sắp tới">' + icon('bell') + (a.length ? '<span class="badge">' + a.length + '</span>' : '') + '</button>'
-      : '<button class="btn btn-sm btn-primary" data-act="login">Đăng nhập</button>';
+    $('#hdr-right').innerHTML = '<button class="icon-btn" data-act="bell" aria-label="Show sắp tới trong 3 ngày">' + icon('bell') + (a.length ? '<span class="badge">' + a.length + '</span>' : '') + '</button>' +
+      '<button class="icon-btn" data-act="lock-now" aria-label="Khóa app">' + icon('lock') + '</button>';
+  }
+
+  /* ---------- Màn hình khóa: mở app là hỏi mật khẩu ---------- */
+  function renderLock() {
+    var el = $('#lock');
+    if (!el.hidden && $('#lg-pass')) return;
+    var t = todayISO(), p = C.parse(t);
+    el.innerHTML = '<div class="lock-box glass-strong">' +
+      '<img src="/icons/icon-192.png" alt="" width="76" height="76" class="lock-icon">' +
+      '<h1>Quản Lý $ Của Kim</h1><p class="hint">' + C.weekday(t) + ', ' + p.d + '/' + p.m + '/' + p.y + '</p>' +
+      '<form id="lock-form" autocomplete="on"><label class="sr" for="lg-pass">Mật khẩu</label>' +
+      '<input class="inp lock-inp" id="lg-pass" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" enterkeyhint="go">' +
+      '<label class="check"><input type="checkbox" id="lg-show"> Hiện mật khẩu</label>' +
+      '<button class="btn btn-primary lock-btn" type="submit" data-act="do-login">Mở khóa</button></form>' +
+      '<p class="hint lock-note">Vì bảo mật, mỗi lần mở app đều phải nhập mật khẩu.</p></div>';
+    el.hidden = false;
+    setTimeout(function () { var i = $('#lg-pass'); if (i) i.focus(); }, 250);
+  }
+
+  /* ---------- Thống kê hôm nay / tuần này / tháng này ---------- */
+  function periods() {
+    var t = todayISO(), p = C.parse(t), mon = C.addDays(t, -((C.dow(t) + 6) % 7));
+    return {
+      day: { from: t, to: t, name: 'Hôm nay', sub: dm(t) },
+      week: { from: mon, to: C.addDays(mon, 6), name: 'Tuần này', sub: dm(mon) + ' – ' + dm(C.addDays(mon, 6)) },
+      month: { from: C.iso(p.y, p.m, 1), to: C.iso(p.y, p.m, C.dim(p.y, p.m)), name: 'Tháng ' + p.m, sub: 'từ 1/' + p.m + ' đến ' + C.dim(p.y, p.m) + '/' + p.m }
+    };
+  }
+  function short(n) {
+    var a = Math.abs(n), s = n < 0 ? '−' : '';
+    if (a >= 1e9) return s + (a / 1e9).toFixed(a % 1e9 ? 2 : 0).replace('.', ',').replace(/,?0+$/, '') + ' tỷ';
+    if (a >= 1e6) return s + (a / 1e6).toFixed(2).replace('.', ',').replace(/,?0+$/, '') + ' tr';
+    if (a >= 1e3) return s + Math.round(a / 1e3) + 'k';
+    return s + a + 'đ';
+  }
+  function statsBlock(addBtn) {
+    var P = periods(), key = state.statKey || 'day', cur = P[key];
+    // chỉ kiểm tra năm, không cần chờ dữ liệu năm trước nếu tuần vắt qua năm
+    needYear(cur.from.slice(0, 4)); needYear(cur.to.slice(0, 4));
+    var tiles = ['day', 'week', 'month'].map(function (k) {
+      var S = sumRange(P[k].from, P[k].to);
+      return '<button class="stat-tile' + (k === key ? ' on' : '') + '" data-act="stat" data-k="' + k + '" aria-pressed="' + (k === key) + '">' +
+        '<span class="st-name">' + P[k].name + '</span><span class="st-val ' + (S.con < 0 ? 'neg' : '') + '">' + short(S.con) + '</span><span class="st-sub">còn lại</span></button>';
+    }).join('');
+    var S = sumRange(cur.from, cur.to);
+    var row = function (dot, label, val, cls, sub) {
+      return '<div class="srow' + (sub ? ' sub' : '') + '"><span>' + (dot ? '<i class="dot" style="--c:' + dot + '"></i>' : '') + label + '</span><b class="' + (cls || '') + '">' + fmt(val) + '</b></div>';
+    };
+    return '<section class="card glass stats"><div class="sec-h"><h2>Thu chi</h2>' + (addBtn ? '<button class="btn btn-sm btn-primary" data-act="add-entry">' + icon('plus') + ' Ghi thu chi</button>' : '') + '</div>' +
+      '<div class="stat-tiles">' + tiles + '</div>' +
+      '<div class="stat-detail"><div class="sd-h"><b>' + cur.name + '</b><span>' + cur.sub + '</span></div>' +
+      '<div class="sd-grid">' +
+      '<div class="sd-col"><div class="sd-t">Tiệm tóc</div>' +
+      row('#5B8DEF', 'Tiền làm', S.lam, '') + row('', 'Hớt tóc', S.hottoc, '', 1) + row('', 'Massage', S.massage, '', 1) +
+      row('#F08BA8', 'Tiền bo tiệm', S.botiem, '') + '</div>' +
+      '<div class="sd-col"><div class="sd-t">Show & khác</div>' +
+      row('#A78BFA', 'Thu show (' + S.showCount + ')', S.show, '') + row('', 'Nhận show', S.showNhan, '', 1) + row('', 'Bo show', S.showBo, '', 1) +
+      row('#5CC8B0', 'Thu khác', S.khac, '') + '</div></div>' +
+      '<div class="sd-sum"><div><span>Tổng thu</span><b class="pos">' + fmt(S.thu) + '</b></div><div><span>Tổng chi</span><b class="neg">' + fmt(S.chi) + '</b></div>' +
+      '<div class="sd-con"><span>Còn lại</span><b class="' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</b></div></div>' +
+      (S.upCount ? '<p class="hint sd-note">Còn ' + S.upCount + ' show sắp diễn trong ' + (key === 'day' ? 'hôm nay' : key === 'week' ? 'tuần' : 'tháng') + ' (dự kiến ' + fmt(S.upNhan) + '), chưa cộng vào tổng.</p>' : '') +
+      '</div></section>';
+  }
+
+  /* ---------- Lịch show (gọn) ---------- */
+  function dayLabel(s) {
+    var t = todayISO();
+    if (s === t) return 'Hôm nay';
+    if (s === C.addDays(t, 1)) return 'Ngày mai';
+    if (s === C.addDays(t, 2)) return 'Ngày kia';
+    return C.weekday(s);
+  }
+  function showRow(o) {
+    var sh = o.show, P = C.period(sh.time), L = C.toLunar(o.iso), bn = bauName(sh);
+    var place = sh.address ? esc(sh.address) : '';
+    return '<button class="srow-show" data-act="open-show" data-id="' + sh.id + '" data-d="' + o.iso + '">' +
+      '<span class="ss-time t-' + P.key + '-soft"><b>' + P.clock + '</b><small>' + P.name.toLowerCase() + '</small></span>' +
+      '<span class="ss-main"><span class="ss-name">' + esc(sh.name) + '</span>' +
+      '<span class="ss-meta">' + [bn ? (/^bầu/i.test(bn) ? '' : 'Bầu ') + esc(bn) : '', place].filter(Boolean).join(' · ') + '</span></span>' +
+      '<span class="ss-chev">' + icon('chevR') + '</span></button>';
+  }
+  function showSchedule() {
+    var t = todayISO(), now = Date.now();
+    var occ = C.occList(state.shows, t, C.addDays(t, 45)).filter(function (o) { return C.showTimeUTC(o.iso, o.show.time) > now - 3 * 3600000; });
+    var shown = occ.slice(0, 8), groups = [], last = null;
+    shown.forEach(function (o) {
+      if (!last || last.iso !== o.iso) { last = { iso: o.iso, items: [] }; groups.push(last); }
+      last.items.push(o);
+    });
+    var body = groups.length ? groups.map(function (g) {
+      var p = C.parse(g.iso), L = C.toLunar(g.iso);
+      return '<div class="sday"><div class="sday-h"><span class="sday-d">' + p.d + '<small>/' + p.m + '</small></span><span><b>' + dayLabel(g.iso) + '</b>' +
+        (dayLabel(g.iso) !== C.weekday(g.iso) ? ' · ' + C.weekday(g.iso) : '') + '<br><small>Âm ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + '</small></span>' +
+        (g.items.length > 1 ? '<span class="sday-n">' + g.items.length + ' show</span>' : '') + '</div>' +
+        g.items.map(showRow).join('') + '</div>';
+    }).join('') : '<p class="empty-state">45 ngày tới chưa có show nào.</p>';
+    return '<section class="card glass"><div class="sec-h"><h2>Lịch show</h2><button class="btn btn-sm btn-primary" data-act="add-show">' + icon('plus') + ' Thêm show</button></div>' +
+      body + (occ.length > shown.length ? '<button class="btn btn-sm more" data-act="tab" data-view="shows">Xem tất cả ' + occ.length + ' show sắp tới</button>' : '') + '</section>';
+  }
+  function openShowDetail(id, s) {
+    var sh = state.shows.find(function (x) { return x.id === id; }); if (!sh) return;
+    openSheet('Chi tiết show', showCard({ show: sh, iso: s }, true));
   }
 
   /* ---------- Trang chủ ---------- */
   function renderHome() {
     var t = todayISO(), p = C.parse(t), L = C.toLunar(t), hs = C.holidays(t);
-    var h = '<section class="hero glass"><div class="hero-top"><div class="hero-day">' + p.d + '</div><div><div class="hero-wd">' + C.weekday(t) + '</div><div class="hero-my">Tháng ' + p.m + ' năm ' + p.y + '</div></div></div>' +
-      '<div class="hero-lunar">Âm lịch: <b>' + lunarTxt(L) + '</b>, năm ' + C.canChi(L.year) + '</div>' +
-      (hs.length ? '<div class="row-btns">' + hs.map(function (x) { return '<span class="pill">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div>' : '') + '</section>';
-    if (logged()) {
-      var S = sumRange(t, t);
-      var up = C.occList(state.shows, t, C.addDays(t, 30)).filter(function (o) { return C.showTimeUTC(o.iso, o.show.time) > Date.now() - 3 * 3600000; }).slice(0, 4);
-      h += '<div class="wide-2"><section class="card glass"><div class="sec-h"><h2>Hôm nay</h2><button class="btn btn-sm" data-act="tab" data-view="money">Ghi thu chi</button></div><div>' +
-        line('Tiền làm (hớt tóc + massage)', S.lam) + line('Tiền bo tiệm tóc', S.botiem) + line('Thu show', S.show) + line('Thu khác', S.khac) + line('Chi', S.chi, 'neg') +
-        '<div class="line total"><span>Còn lại</span><b class="' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</b></div></div></section>' +
-        '<section class="card glass"><div class="sec-h"><h2>Show sắp tới</h2><button class="btn btn-sm btn-primary" data-act="add-show">' + icon('plus') + ' Thêm show</button></div>' +
-        (up.length ? '<div class="stack">' + up.map(function (o) { return showCard(o, true); }).join('') + '</div>' : '<p class="empty-state">30 ngày tới chưa có show nào.</p>') + '</section></div>';
-    } else {
-      h += '<section class="card glass login-card"><div><h2>Đăng nhập để quản lý</h2><p class="hint">Thêm show, ghi thu chi và xem báo cáo sau khi đăng nhập.</p></div><button class="btn btn-primary" data-act="login">Đăng nhập</button></section>';
-    }
-    var months = [0, 1, 2].map(function (i) { var y = state.cal.y, m = state.cal.m + i; while (m > 12) { m -= 12; y++; } return [y, m]; });
-    h += '<div class="cal-nav"><h2>Lịch âm dương</h2><div class="row-btns"><button class="icon-btn" data-act="cal-prev" aria-label="Lùi 1 tháng">' + icon('chevL') + '</button>' +
-      '<button class="btn btn-sm" data-act="cal-today">Hôm nay</button><button class="icon-btn" data-act="cal-next" aria-label="Tới 1 tháng">' + icon('chevR') + '</button></div></div>' +
-      '<p class="cal-legend">Số to là ngày dương, số nhỏ là ngày âm. Ô đỏ là ngày có show, chấm đỏ là ngày lễ. Chạm vào ngày để xem chi tiết.</p>' +
-      '<div class="months">' + months.map(function (x) { return monthHTML(x[0], x[1]); }).join('') + '</div>';
+    var todayShows = C.occList(state.shows, t, t).length;
+    var h = '<section class="hero glass"><div class="hero-top"><div class="hero-day">' + p.d + '</div>' +
+      '<div class="hero-txt"><div class="hero-wd">' + C.weekday(t) + '</div><div class="hero-my">Tháng ' + p.m + ', ' + p.y + '</div></div>' +
+      '<div class="hero-lun"><span>Âm lịch</span><b>' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + '</b><small>' + C.canChi(L.year) + '</small></div></div>' +
+      '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
+      hs.map(function (x) { return '<span class="chip-soft">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
+    h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
+    h += calendarBlock();
     $('#view-home').innerHTML = h;
   }
-  function monthHTML(y, m) {
+
+  /* ---------- Lịch âm dương 3 tháng ---------- */
+  function calMonths() {
+    return [0, 1, 2].map(function (i) { var y = state.cal.y, m = state.cal.m + i; while (m > 12) { m -= 12; y++; } return [y, m]; });
+  }
+  function calendarBlock() {
+    var months = calMonths(), sel = Math.min(state.calIdx || 0, 2);
+    return '<section class="cal-wrap"><div class="cal-nav"><h2>Lịch âm dương</h2><div class="row-btns">' +
+      '<button class="icon-btn sm" data-act="cal-prev" aria-label="Lùi 1 tháng">' + icon('chevL') + '</button>' +
+      '<button class="btn btn-sm" data-act="cal-today">Tháng này</button>' +
+      '<button class="icon-btn sm" data-act="cal-next" aria-label="Tới 1 tháng">' + icon('chevR') + '</button></div></div>' +
+      '<div class="seg cal-tabs">' + months.map(function (x, i) {
+        return '<button class="' + (i === sel ? 'on' : '') + '" data-act="cal-pick" data-i="' + i + '">Tháng ' + x[1] + (x[0] !== C.parse(todayISO()).y ? ' / ' + String(x[0]).slice(2) : '') + '</button>';
+      }).join('') + '</div>' +
+      '<div class="months" data-sel="' + sel + '">' + months.map(function (x, i) { return monthHTML(x[0], x[1], i === sel); }).join('') + '</div>' +
+      '<div class="cal-legend"><span><i class="lg lg-show"></i>Có show</span><span><i class="lg lg-today"></i>Hôm nay</span><span><i class="lg lg-hol"></i>Ngày lễ</span><span><b>15</b> dương · <small>12</small> âm</span></div></section>';
+  }
+  function monthHTML(y, m, active) {
     var first = C.iso(y, m, 1), n = C.dim(y, m), last = C.iso(y, m, n);
     var lead = (C.dow(first) + 6) % 7, t = todayISO();
     var byDay = {};
-    if (logged()) C.occList(state.shows, first, last).forEach(function (o) { byDay[o.iso] = (byDay[o.iso] || 0) + 1; });
+    C.occList(state.shows, first, last).forEach(function (o) { (byDay[o.iso] = byDay[o.iso] || []).push(C.period(o.show.time).key); });
     var cells = '', hols = [];
     for (var i = 0; i < lead; i++) cells += '<div class="cell empty"></div>';
     for (var d = 1; d <= n; d++) {
-      var s = C.iso(y, m, d), L = C.toLunar(s), hs = C.holidays(s), cnt = byDay[s] || 0;
+      var s = C.iso(y, m, d), L = C.toLunar(s), hs = C.holidays(s), sh = byDay[s] || [];
       if (hs.length) hols.push({ s: s, L: L, hs: hs });
-      var cls = 'cell' + (s === t ? ' today' : '') + (cnt ? ' show' : '') + (hs.length ? ' hol' : '') + (C.dow(s) === 0 ? ' sun' : '') + (L.day === 1 || L.day === 15 ? ' lk' : '');
-      var lun = L.day === 1 ? L.day + '/' + L.month + (L.leap ? 'N' : '') : L.day;
-      var lbl = d + ' tháng ' + m + ', âm ' + L.day + '/' + L.month + (cnt ? ', có ' + cnt + ' show' : '') + (hs.length ? ', ' + hs.map(function (x) { return x.name; }).join(', ') : '');
-      cells += '<button class="' + cls + '" data-act="day" data-d="' + s + '" aria-label="' + esc(lbl) + '"><span class="sol">' + d + '</span><span class="lun">' + lun + '</span>' +
-        (cnt ? '<span class="cnt">' + cnt + '</span>' : '') + (hs.length ? '<i class="hdot"></i>' : '') + '</button>';
+      var cls = 'cell' + (s === t ? ' today' : '') + (sh.length ? ' show' : '') + (hs.length ? ' hol' : '') + (s < t ? ' past' : '');
+      var lun = L.day === 1 ? '1/' + L.month + (L.leap ? 'n' : '') : L.day;
+      var lbl = d + ' tháng ' + m + ', âm ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + (sh.length ? ', có ' + sh.length + ' show' : '') + (hs.length ? ', ' + hs.map(function (x) { return x.name; }).join(', ') : '');
+      cells += '<button class="' + cls + '" data-act="day" data-d="' + s + '" aria-label="' + esc(lbl) + '"><span class="sol">' + d + '</span><span class="lun' + (L.day === 1 ? ' l1' : '') + '">' + lun + '</span>' +
+        (sh.length ? '<span class="pips">' + sh.slice(0, 3).map(function (k) { return '<i class="pip p-' + k + '"></i>'; }).join('') + '</span>' : (hs.length ? '<i class="hdot"></i>' : '')) + '</button>';
     }
     var L1 = C.toLunar(first), L2 = C.toLunar(last);
-    var lr = 'Âm lịch: tháng ' + L1.month + (L1.leap ? ' nhuận' : '') + (L1.month !== L2.month || L1.leap !== L2.leap ? ' – ' + L2.month + (L2.leap ? ' nhuận' : '') : '');
-    return '<section class="month glass"><header class="month-h"><h3>Tháng ' + m + ' <span>' + y + '</span></h3><p>' + lr + '</p></header>' +
+    var lr = 'Âm: tháng ' + L1.month + (L1.leap ? ' nhuận' : '') + (L1.month !== L2.month || L1.leap !== L2.leap ? ' – ' + L2.month + (L2.leap ? ' nhuận' : '') : '');
+    return '<section class="month glass' + (active ? ' active' : '') + '"><header class="month-h"><h3>Tháng ' + m + ' <span>' + y + '</span></h3><p>' + lr + '</p></header>' +
       '<div class="wk"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>' +
       '<div class="grid">' + cells + '</div>' +
       (hols.length ? '<ul class="hols">' + hols.map(function (x) {
-        return x.hs.map(function (hh) { return '<li><b>' + dm(x.s) + '</b> ' + esc(hh.name) + (hh.type === 'am' ? ' <span class="am">(' + x.L.day + '/' + x.L.month + ' âm)</span>' : '') + '</li>'; }).join('');
+        return x.hs.map(function (hh) { return '<li><b>' + dm(x.s) + '</b>' + esc(hh.name) + (hh.type === 'am' ? ' <span class="am">' + x.L.day + '/' + x.L.month + ' âm</span>' : '') + '</li>'; }).join('');
       }).join('') + '</ul>' : '') + '</section>';
   }
 
@@ -426,10 +536,10 @@
       '<div class="field"><span class="lbl">Ngày nhận show</span><div class="seg"><button type="button" data-act="date-type" data-t="am" class="' + (dt === 'am' ? 'on' : '') + '">🌙 Âm lịch</button>' +
       '<button type="button" data-act="date-type" data-t="duong" class="' + (dt === 'duong' ? 'on' : '') + '">☀️ Dương lịch</button></div>' +
       '<div id="sf-am"' + (dt === 'am' ? '' : ' hidden') + ' style="margin-top:8px"><div class="grid3">' +
-      '<label class="mini">Ngày âm<select class="inp" id="sf-ld">' + range(1, 30).map(function (n) { return opt(n, lun.d); }).join('') + '</select></label>' +
-      '<label class="mini">Tháng âm<select class="inp" id="sf-lm">' + range(1, 12).map(function (n) { return opt(n, lun.m); }).join('') + '</select></label>' +
+      '<label class="mini">Ngày âm<select class="inp" id="sf-ld"></select></label>' +
+      '<label class="mini">Tháng âm<select class="inp" id="sf-lm"></select></label>' +
       '<label class="mini">Năm âm<select class="inp" id="sf-ly">' + years.map(function (n) { return opt(n, lun.y); }).join('') + '</select></label></div>' +
-      '<label class="check"><input type="checkbox" id="sf-leap"' + (lun.leap ? ' checked' : '') + '> Tháng nhuận</label></div>' +
+      '<div class="hint" id="sf-leapinfo"></div></div>' +
       '<div id="sf-duong"' + (dt === 'duong' ? '' : ' hidden') + ' style="margin-top:8px"><input class="inp" type="date" id="sf-sd" value="' + base + '" aria-label="Ngày dương"></div>' +
       '<div class="preview" id="sf-dprev"></div></div>' +
       '<div class="field"><label for="sf-time">Giờ tiệc *</label><input class="inp" type="time" id="sf-time" value="' + v('time') + '"><div id="sf-tprev"></div></div>' +
@@ -442,17 +552,36 @@
       '<div class="field"><label for="sf-note">Ghi chú</label><textarea class="inp" id="sf-note" rows="2" maxlength="500">' + v('note') + '</textarea></div></div>';
     var f = '<button class="btn" data-act="close-sheet">Hủy</button><button class="btn btn-primary" data-act="save-show">' + (sh ? 'Lưu thay đổi' : 'Lưu show') + '</button>';
     openSheet(sh ? 'Sửa show' : 'Thêm show', b, f);
+    fillLunar(lun.d, lun.m, lun.y, lun.leap);
     updateShowPreview();
+  }
+  // Tự dựng danh sách tháng âm (có tháng nhuận nếu năm đó có) và số ngày đúng của tháng
+  function leapMonthOf(y) { for (var m = 1; m <= 12; m++) if (C.lunarMonthLen(m, y, 1)) return m; return 0; }
+  function fillLunar(d, m, y, leap) {
+    var lm = $('#sf-lm'), ld = $('#sf-ld'), info = $('#sf-leapinfo'); if (!lm) return;
+    var lp = leapMonthOf(y);
+    if (leap && lp !== m) leap = 0;
+    var mo = '';
+    for (var i = 1; i <= 12; i++) {
+      mo += opt(i + '-0', m + '-' + (leap ? 1 : 0), String(i));
+      if (i === lp) mo += opt(i + '-1', m + '-' + (leap ? 1 : 0), i + ' nhuận');
+    }
+    lm.innerHTML = mo;
+    var len = C.lunarMonthLen(m, y, leap) || 30;
+    d = Math.min(d, len);
+    ld.innerHTML = range(1, len).map(function (n) { return opt(n, d); }).join('');
+    info.textContent = 'Tháng ' + m + (leap ? ' nhuận' : '') + ' năm ' + y + ' có ' + len + ' ngày' + (lp ? ' · năm ' + C.canChi(y) + ' có tháng ' + lp + ' nhuận' : '') + '.';
+  }
+  function readLunarSel() {
+    var mv = String($('#sf-lm').value || '1-0').split('-');
+    return { d: +$('#sf-ld').value || 1, m: +mv[0], y: +$('#sf-ly').value, leap: +mv[1] ? 1 : 0 };
   }
   function readShowDate() {
     if ($('#sf-dtype').value === 'am') {
-      var d = +$('#sf-ld').value, m = +$('#sf-lm').value, y = +$('#sf-ly').value, leap = $('#sf-leap').checked ? 1 : 0;
-      var len = C.lunarMonthLen(m, y, leap);
-      if (!len) return { error: 'Năm ' + y + ' âm lịch không có tháng ' + m + ' nhuận.' };
-      if (d > len) return { error: 'Tháng ' + m + (leap ? ' nhuận' : '') + ' âm lịch năm ' + y + ' chỉ có ' + len + ' ngày.' };
-      var s = C.fromLunar(d, m, y, leap);
+      var x = readLunarSel();
+      var s = C.fromLunarClamp(x.d, x.m, x.y, x.leap);
       if (!s) return { error: 'Ngày âm lịch không hợp lệ.' };
-      return { iso: s, lunar: { d: d, m: m, y: y, leap: leap } };
+      return { iso: s, lunar: { d: x.d, m: x.m, y: x.y, leap: x.leap } };
     }
     var iso = $('#sf-sd').value;
     if (!iso) return { error: 'Chọn ngày dương lịch.' };
@@ -485,7 +614,7 @@
     if (t === 'duong') { if (D.iso) $('#sf-sd').value = D.iso; }
     else {
       var iso = $('#sf-sd').value;
-      if (iso) { var L = C.toLunar(iso); setSel('sf-ld', L.day); setSel('sf-lm', L.month); setSel('sf-ly', L.year); $('#sf-leap').checked = !!L.leap; }
+      if (iso) { var L = C.toLunar(iso); setSel('sf-ly', L.year); fillLunar(L.day, L.month, L.year, L.leap); }
     }
     $('#sf-am').hidden = t !== 'am'; $('#sf-duong').hidden = t !== 'duong';
     $$('[data-act="date-type"]').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
@@ -600,7 +729,7 @@
       '<input type="date" id="money-date" value="' + s + '" aria-label="Chọn ngày"></label>' +
       '<button class="icon-btn" data-act="money-next" aria-label="Ngày sau">' + icon('chevR') + '</button></section>';
     if (s !== todayISO()) h += '<div class="row-btns" style="justify-content:center"><button class="btn btn-sm" data-act="money-today">Về hôm nay</button></div>';
-    h += '<div class="wide-2"><section class="sum glass"><div class="hint">Còn lại trong ngày (thu − chi)</div><div class="big ' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</div>' +
+    h += '<div class="wide-2"><section class="sum glass"><div class="hint">Ngày đang xem · còn lại (thu − chi)</div><div class="big ' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</div>' +
       '<div class="line"><span>Tiền làm tiệm tóc</span><b>' + fmt(S.lam) + '</b></div>' +
       '<div class="line sub"><span>Hớt tóc</span><span>' + fmt(S.hottoc) + '</span></div>' +
       '<div class="line sub"><span>Massage</span><span>' + fmt(S.massage) + '</span></div>' +
@@ -619,6 +748,7 @@
         return '<div class="entry"><span class="emo">🎤</span><div class="t"><div class="n">' + esc(o.show.name) + '</div><div class="d">' + P.icon + ' ' + P.text + ' · nhận ' + fmt(m.received) + ' · bo ' + fmt(m.tip) + '</div></div>' +
           '<button class="btn btn-sm" data-act="show-money" data-id="' + o.show.id + '" data-d="' + o.iso + '">Sửa tiền</button></div>';
       }).join('') + '</div>' : '') + '</section></div>';
+    h += statsBlock(false);
     $('#view-money').innerHTML = h;
   }
   function noteLabel(c) { return c === 'khac' ? 'Nội dung tiền khác *' : c === 'chi' ? 'Nội dung chi *' : 'Ghi chú (không bắt buộc)'; }
@@ -753,7 +883,7 @@
       '<div class="line"><span>Nhắc cả khi đóng app</span><b>' + (pushOn ? '✅ Đang bật' : 'Chưa bật') + '</b></div>' +
       '<div class="row-btns" style="margin-top:10px"><button class="btn btn-primary" data-act="push-on">' + icon('bell') + ' Bật thông báo</button>' +
       (pushOn ? '<button class="btn" data-act="push-test">Gửi thử</button>' : '') + '</div>' +
-      '<details><summary>Cài đặt nhắc khi đóng app (làm 1 lần)</summary><p class="hint">Bấm nút dưới để lấy mã, rồi làm theo Bước 7 trong file HUONG-DAN.md.</p>' +
+      '<details><summary>Cài đặt nhắc khi đóng app (làm 1 lần)</summary><p class="hint">Bấm nút dưới để lấy mã, rồi làm theo Bước 8 trong file HUONG-DAN.md.</p>' +
       '<button class="btn btn-sm" data-act="push-keys">Lấy mã cài đặt</button><div id="keys-out"></div></details>' +
       '<p class="hint">Cách chắc chắn nhất: bấm “Thêm vào lịch nhắc” trên mỗi thẻ show. Lịch của điện thoại sẽ tự nhắc đúng 3 mốc giờ, kể cả khi không mở app.</p></section>';
 
@@ -769,8 +899,8 @@
       '<li><b>Android:</b> mở bằng Chrome → bấm <b>⋮</b> góc phải trên → <b>Thêm vào màn hình chính</b>.</li>' +
       '<li><b>Máy tính:</b> mở bằng Chrome/Edge → bấm biểu tượng <b>Cài đặt ứng dụng</b> ở cuối thanh địa chỉ.</li></ol></section>';
 
-    h += '<section class="card glass"><h2>🔑 Tài khoản</h2><p class="hint" style="margin-top:0">Muốn đổi mật khẩu: vào Vercel → dự án kim1994 → Settings → Environment Variables → sửa <b>APP_PASSWORD</b> → Redeploy (xem Bước 8 trong HUONG-DAN.md).</p>' +
-      '<button class="btn danger" data-act="logout">' + icon('out') + ' Đăng xuất</button></section>';
+    h += '<section class="card glass"><h2>🔑 Tài khoản</h2><p class="hint" style="margin-top:0">Muốn đổi mật khẩu: vào Vercel → dự án kim1994 → Settings → Environment Variables → sửa <b>APP_PASSWORD</b> → Redeploy (xem Bước 9 trong HUONG-DAN.md). Nếu dùng Render thì đổi cả bên Render.</p>' +
+      '<button class="btn danger" data-act="logout">' + icon('out') + ' Khóa app</button></section>';
     $('#view-settings').innerHTML = h;
   }
   function b64ToU8(b) {
@@ -783,7 +913,7 @@
     }
     Notification.requestPermission().then(function (p) {
       if (p !== 'granted') { toast('Bạn chưa cho phép thông báo. Vào Cài đặt của máy → Thông báo để mở lại.', 'err'); render(); return; }
-      if (!state.vapidPublic) { toast('Đã bật nhắc trong app. Làm thêm Bước 7 để được nhắc cả khi đóng app.'); localNotify(); render(); return; }
+      if (!state.vapidPublic) { toast('Đã bật nhắc trong app. Làm thêm Bước 8 (HUONG-DAN.md) để được nhắc cả khi đóng app.'); localNotify(); render(); return; }
       busy(btn, true);
       return navigator.serviceWorker.ready.then(function (reg) {
         return reg.pushManager.getSubscription().then(function (sub) {
@@ -834,33 +964,33 @@
   }
 
   /* ---------- Đăng nhập ---------- */
-  function openLogin(next) {
-    state.afterLogin = next || null;
-    openSheet('Đăng nhập', '<div class="field"><label for="lg-pass">Mật khẩu</label><input class="inp" id="lg-pass" type="password" autocomplete="current-password" enterkeyhint="go"></div>' +
-      '<label class="check"><input type="checkbox" id="lg-show"> Hiện mật khẩu</label>', '<button class="btn btn-primary" data-act="do-login">Đăng nhập</button>');
-    setTimeout(function () { var i = $('#lg-pass'); if (i) i.focus(); }, 320);
-  }
   function doLogin(btn) {
-    var p = $('#lg-pass').value; if (!p) return toast('Nhập mật khẩu', 'err');
-    busy(btn, true);
+    var i = $('#lg-pass'); if (!i) return;
+    var p = i.value; if (!p) { i.focus(); return toast('Nhập mật khẩu', 'err'); }
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang mở…'; }
     fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.error || 'Không đăng nhập được'); return j; }); })
       .then(function (j) {
-        state.token = j.token; localStorage.setItem('kim_token', j.token);
-        closeSheet(); toast('Đăng nhập thành công');
-        state.fresh = {};
-        if (state.afterLogin) state.view = state.afterLogin;
+        state.token = j.token; sessionStorage.setItem('kim_token', j.token);
+        state.fresh = {}; state.view = 'home';
+        $('#lock').innerHTML = '';
         render();
         return ensureYear(new Date().getFullYear()).then(render);
       })
-      .catch(function (e) { busy(btn, false); toast(e.message === 'Failed to fetch' ? 'Không kết nối được máy chủ' : e.message, 'err'); });
+      .catch(function (e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Mở khóa'; }
+        var box = $('.lock-box'); if (box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
+        if (i) { i.value = ''; i.focus(); }
+        toast(e.message === 'Failed to fetch' ? 'Không kết nối được máy chủ' : e.message, 'err');
+      });
   }
   function logout(expired) {
-    state.token = ''; localStorage.removeItem('kim_token'); localStorage.removeItem('kim_cache');
+    state.token = ''; sessionStorage.removeItem('kim_token'); sessionStorage.removeItem('kim_cache');
+    localStorage.removeItem('kim_token'); localStorage.removeItem('kim_cache');
     state.shows = []; state.baus = []; state.entries = {}; state.fresh = {}; state.years = []; state.storage = null;
     state.view = 'home';
-    if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
-    if (expired) toast('Phiên đăng nhập đã hết, vui lòng đăng nhập lại', 'err');
+    closeSheet();
+    if (expired) toast('Phiên đăng nhập đã hết, vui lòng nhập lại mật khẩu', 'err');
     render();
   }
 
@@ -877,18 +1007,19 @@
     'close-sheet': function () { closeSheet(); },
     tab: function (el) {
       var v = el.dataset.view;
-      if (!logged() && v !== 'home') return openLogin(v);
       closeSheet(); state.view = v; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    login: function () { openLogin(); },
-    'do-login': function (el) { doLogin(el); },
+    'lock-now': function () { logout(); },
+    stat: function (el) { state.statKey = el.dataset.k; render(); },
+    'cal-pick': function (el) { state.calIdx = +el.dataset.i; renderHome(); },
+    'open-show': function (el) { openShowDetail(el.dataset.id, el.dataset.d); },
     logout: function () { if (confirm('Đăng xuất khỏi máy này?')) logout(); },
     bell: openBell,
     'cal-prev': function () { state.cal.m--; if (state.cal.m < 1) { state.cal.m = 12; state.cal.y--; } renderHome(); },
     'cal-next': function () { state.cal.m++; if (state.cal.m > 12) { state.cal.m = 1; state.cal.y++; } renderHome(); },
-    'cal-today': function () { var t = new Date(); state.cal = { y: t.getFullYear(), m: t.getMonth() + 1 }; renderHome(); },
+    'cal-today': function () { var t = new Date(); state.cal = { y: t.getFullYear(), m: t.getMonth() + 1 }; state.calIdx = 0; renderHome(); },
     day: function (el) { openDay(el.dataset.d); },
-    'add-show': function (el) { if (!logged()) return openLogin(); openShowForm(null, el.dataset.d); },
+    'add-show': function (el) { openShowForm(null, el.dataset.d); },
     'edit-show': function (el) { openShowForm(el.dataset.id); },
     'del-show': function (el) { delShow(el.dataset.id); },
     'save-show': function (el) { saveShow(el); },
@@ -905,7 +1036,7 @@
     'money-prev': function () { state.moneyDate = C.addDays(state.moneyDate, -1); renderMoney(); },
     'money-next': function () { state.moneyDate = C.addDays(state.moneyDate, 1); renderMoney(); },
     'money-today': function () { state.moneyDate = todayISO(); renderMoney(); },
-    'add-entry': function (el) { if (!logged()) return openLogin(); openEntry(null, el.dataset.cat, el.dataset.d); },
+    'add-entry': function (el) { openEntry(null, el.dataset.cat, el.dataset.d); },
     'edit-entry': function (el) { openEntry(el.dataset.id); },
     'del-entry': function (el) { delEntry(el.dataset.id); },
     'save-entry': function (el) { saveEntry(el); },
@@ -941,7 +1072,7 @@
 
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]');
-    if (!el) return;
+    if (!el || el.closest('#lock-form')) return;
     var fn = ACT[el.dataset.act];
     if (!fn) return;
     e.preventDefault();
@@ -956,16 +1087,22 @@
   document.addEventListener('change', function (e) {
     var t = e.target;
     if (t.id === 'sf-bau') { $('#sf-nb').hidden = t.value !== '__new'; }
+    if (t.id === 'sf-lm' || t.id === 'sf-ly') { var x = readLunarSel(); fillLunar(x.d, x.m, x.y, x.leap); }
     if (t.closest && t.closest('#show-form')) updateShowPreview();
     if (t.id === 'money-date' && t.value) { state.moneyDate = t.value; renderMoney(); }
     if (t.id === 'ef-date' && t.value) { $('#ef-lunar').textContent = 'Âm lịch: ' + lunarTxt(C.toLunar(t.value)); }
     if (t.id === 'lg-show') { $('#lg-pass').type = t.checked ? 'text' : 'password'; }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && e.target.id === 'lg-pass') { e.preventDefault(); doLogin($('[data-act="do-login"]')); }
     if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet();
   });
+  var hiddenAt = 0;
+  document.addEventListener('submit', function (e) {
+    if (e.target.id === 'lock-form') { e.preventDefault(); doLogin($('#lock-form button[type=submit]')); }
+  });
   document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+    if (logged() && hiddenAt && Date.now() - hiddenAt > 5 * 60000) { hiddenAt = 0; logout(); return; }
     if (document.visibilityState === 'visible' && logged()) {
       state.fresh = {};
       ensureYear(new Date().getFullYear()).then(render, function () { });

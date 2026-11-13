@@ -7,16 +7,17 @@ Làm trên **máy tính** (Chrome hoặc Edge) cho dễ. Tổng thời gian kho�
 
 ---
 
-## Cách app lưu dữ liệu (đọc 1 phút)
-
-App dùng **2 dịch vụ miễn phí**:
+## Cách app chạy và lưu dữ liệu (đọc 1 phút)
 
 | Dịch vụ | Làm gì |
 |---|---|
-| **GitHub** | Có 2 kho (repository): kho **kim1994** chứa code, kho **kim1994-data** (riêng tư) chứa dữ liệu show, thu chi. |
-| **Vercel** | Chạy trang web ở link kim1994.vercel.app, đọc/ghi dữ liệu vào kho kim1994-data. |
+| **GitHub** | Kho **kim1994** chứa code. Kho **kim1994-data** (riêng tư) chứa **dữ liệu** show, bầu show, thu chi. |
+| **Vercel** | Chạy app ở link chính **kim1994.vercel.app**. Mở nhanh, không bao giờ "ngủ". |
+| **Render** | Chạy **bản dự phòng** ở link **kim1994.onrender.com** (Bước 5). |
 
-**Vì sao không dùng Render.com để lưu?** Gói miễn phí của Render không có ổ đĩa lưu lâu dài (máy chủ khởi động lại là mất file), còn cơ sở dữ liệu miễn phí của Render chỉ dùng được một thời gian rồi bị xóa. Lưu thẳng vào kho GitHub riêng tư thì **miễn phí, không hết hạn, có lịch sử từng lần sửa** (lỡ xóa nhầm vẫn xem lại được). Nên bộ này **không cần Render**.
+Cả Vercel và Render đều đọc/ghi **chung một kho dữ liệu kim1994-data**, nên nhập ở link nào thì link kia cũng thấy y hệt. Lỡ một bên bị lỗi, bạn vẫn mở được bên còn lại.
+
+⚠️ Dữ liệu **không** lưu trên ổ đĩa của Render, vì gói miễn phí của Render xóa sạch ổ đĩa mỗi lần khởi động lại. Lưu ở GitHub thì miễn phí, không hết hạn và có lịch sử từng lần sửa.
 
 Dữ liệu được tách mỗi năm 1 file, nên xóa theo năm rất gọn.
 
@@ -90,27 +91,66 @@ Dữ liệu được tách mỗi năm 1 file, nên xóa theo năm rất gọn.
 
 ---
 
-## Bước 5 — Thử app
+## Bước 5 — Kết nối Render (bản dự phòng)
 
-1. Mở **https://kim1994.vercel.app** → bấm **Đăng nhập** → gõ `08051994@`.
-2. Vào tab **Thu chi** → bấm **Hớt tóc** → nhập `50000` → **Lưu**.
+Làm sau khi Bước 4 đã chạy được. Render dùng **chính kho code kim1994** và **chính kho dữ liệu kim1994-data**.
+
+1. Vào **https://render.com** → bấm **Get Started** (hoặc **Sign In**) → chọn **GitHub** → bấm **Authorize Render** nếu được hỏi.
+2. Ở trang Dashboard, bấm nút **+ New** (góc phải trên) → chọn **Web Service**.
+3. Mục **Source Code** / **Git Provider**: chọn **GitHub**.
+   - Nếu chưa thấy kho **kim1994**: bấm **Configure account** (hoặc **Connect GitHub**) → trang GitHub mở ra → chọn **Only select repositories** → chọn **kim1994** → bấm **Save** (hoặc **Install**) → quay lại Render.
+4. Bấm vào kho **kim1994** → bấm **Connect**.
+5. Điền trang cài đặt:
+   - **Name**: `kim1994` (tạo ra link kim1994.onrender.com; nếu tên đã có người dùng, Render tự thêm đuôi, VD `kim1994-ab12.onrender.com`)
+   - **Language** (hoặc **Runtime**): chọn **Node**
+   - **Branch**: `main`
+   - **Region**: chọn **Singapore** (gần Việt Nam nhất)
+   - **Root Directory**: để trống
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Instance Type**: chọn **Free**
+6. Kéo xuống mục **Environment Variables** → bấm **+ Add Environment Variable**, thêm **đúng 3 dòng giống Vercel**:
+
+| NAME_OF_VARIABLE | value |
+|---|---|
+| `GITHUB_TOKEN` | dãy `github_pat_…` ở Bước 3 (dán lại đúng dãy đó) |
+| `GITHUB_REPO` | `tên-tài-khoản/kim1994-data` |
+| `APP_PASSWORD` | `08051994@` (phải **giống hệt** bên Vercel) |
+
+   Nếu sau này làm Bước 8 (thông báo), thêm cả `VAPID_PUBLIC_KEY` và `VAPID_PRIVATE_KEY` **giống hệt** bên Vercel.
+7. Bấm nút **Deploy Web Service** ở cuối trang.
+8. Chờ 2–4 phút. Khung nhật ký (Logs) hiện dòng **"Quản Lý $ Của Kim đang chạy ở cổng …"** và chữ **Live** màu xanh là xong.
+9. Bấm vào link **…onrender.com** ở góc trên trái → nhập mật khẩu → phải thấy đúng dữ liệu đã nhập bên Vercel. ✅
+
+**Lưu ý về Render miễn phí:**
+- Không ai mở trong 15 phút thì Render cho app "ngủ". Lần mở kế tiếp phải **chờ khoảng 30–60 giây** để app thức dậy. Đây là bình thường, không mất dữ liệu.
+- Vì vậy dùng hằng ngày nên mở **kim1994.vercel.app**. Link Render để dự phòng.
+- Mỗi lần bạn tải code mới lên kho kim1994, Render tự cập nhật (giống Vercel).
+- Đổi mật khẩu thì phải đổi **cả 2 nơi**: Vercel (Bước 9) và Render: vào dịch vụ **kim1994** trên Render → menu trái **Environment** → bấm ✏️ cạnh `APP_PASSWORD` → sửa → **Save, rebuild, and deploy**.
+
+---
+
+## Bước 6 — Thử app
+
+1. Mở **https://kim1994.vercel.app** → gõ mật khẩu `08051994@` → bấm **Mở khóa**.
+2. Màn hình khóa hiện ra ngay khi mở app. Vào tab **Thu chi** → bấm **Hớt tóc** → nhập `50000` → **Lưu**.
 3. Mở lại kho **kim1994-data** trên GitHub → phải thấy thư mục **data** có file `config.json` và `thuchi-2026.json`. ✅ Lưu dữ liệu đã chạy.
 
 **Nếu báo lỗi đỏ khi lưu:**
-- *“Chưa cài GITHUB_TOKEN…”* → Bước 4 mục 5 chưa thêm biến, thêm vào rồi làm **Redeploy** (xem Bước 8).
+- *“Chưa cài GITHUB_TOKEN…”* → Bước 4 mục 5 chưa thêm biến, thêm vào rồi làm **Redeploy** (xem Bước 9).
 - *“GitHub báo lỗi 401”* → token sai hoặc hết hạn → làm lại Bước 3, sửa `GITHUB_TOKEN`, Redeploy.
 - *“…lỗi 403”* → token thiếu quyền **Contents: Read and write**.
 - *“…lỗi 404”* → `GITHUB_REPO` viết sai, hoặc token chưa chọn kho kim1994-data.
 
 ---
 
-## Bước 6 — Thêm icon app vào màn hình điện thoại
+## Bước 7 — Thêm icon app vào màn hình điện thoại
 
 **iPhone / iPad**
 1. Mở **Safari** (bắt buộc Safari), vào `kim1994.vercel.app`.
 2. Bấm nút **Chia sẻ** (ô vuông có mũi tên chỉ lên, ở thanh dưới hoặc trên).
 3. Kéo xuống chọn **Thêm vào MH chính** (Add to Home Screen). Có thể sửa tên hiện dưới icon.
-4. Bấm **Thêm**. Mở app **bằng icon vừa tạo** rồi đăng nhập lại 1 lần.
+4. Bấm **Thêm**. Mở app **bằng icon vừa tạo** → nhập mật khẩu.
 
 **Android**: mở bằng Chrome → bấm **⋮** góc phải trên → **Thêm vào màn hình chính** → **Thêm**.
 
@@ -118,7 +158,7 @@ Dữ liệu được tách mỗi năm 1 file, nên xóa theo năm rất gọn.
 
 ---
 
-## Bước 7 — Thông báo nhắc show (trước 3 ngày, 1 ngày, 1 tiếng)
+## Bước 8 — Thông báo nhắc show (trước 3 ngày, 1 ngày, 1 tiếng)
 
 App có **3 cách nhắc**, từ dễ đến đầy đủ:
 
@@ -135,7 +175,7 @@ Trên mỗi thẻ show bấm **Thêm vào lịch nhắc** → điện thoại m�
    - Key `VAPID_PRIVATE_KEY` → Value: dòng VAPID_PRIVATE_KEY
    → bấm **Save**.
    ⚠️ Dùng **2 khóa của cùng 1 lần bấm**. Bấm “Lấy mã” lần nữa sẽ ra cặp mới.
-3. Làm **Redeploy** (xem Bước 8, mục 3).
+3. Làm **Redeploy** (xem Bước 9, mục 3). Nếu dùng Render, thêm 2 khóa này vào Render nữa (Bước 5 mục 6).
 4. Vào **https://cron-job.org** → **Sign up** (miễn phí) → đăng nhập → bấm **Create cronjob**:
    - **Title**: `Nhac show Kim`
    - **URL**: dán **Link hẹn giờ (cron)** lấy ở mục 1 (dạng `https://kim1994.vercel.app/api/cron?key=…`)
@@ -146,7 +186,7 @@ Trên mỗi thẻ show bấm **Thêm vào lịch nhắc** → điện thoại m�
 
 ---
 
-## Bước 8 — Đổi mật khẩu / sửa biến / Redeploy
+## Bước 9 — Đổi mật khẩu / sửa biến / Redeploy
 
 1. Vercel → dự án **kim1994** → tab **Settings** → **Environment Variables**.
 2. Dòng **APP_PASSWORD** → bấm **⋯** → **Edit** → gõ mật khẩu mới → **Save**.
@@ -155,7 +195,7 @@ Trên mỗi thẻ show bấm **Thêm vào lịch nhắc** → điện thoại m�
 
 ---
 
-## Bước 9 — Cập nhật code sau này
+## Bước 10 — Cập nhật code sau này
 
 Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo các file mới vào (trùng tên sẽ ghi đè) → **Commit changes**. Vercel tự cập nhật sau khoảng 1 phút. Dữ liệu ở kho kim1994-data **không bị ảnh hưởng**.
 
@@ -163,17 +203,16 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 
 ## Cách dùng nhanh
 
-- **Lịch**: hiện tháng này và 2 tháng kế (VD tháng 11 → 11, 12, 1). Số to là ngày dương (đậm), số nhỏ là ngày âm (nhạt). Ô **đỏ** = có show (số trắng góc ô = số show trong ngày). Chấm đỏ = ngày lễ, danh sách ngày lễ ở cuối mỗi tháng. Chạm 1 ngày để xem show + thu chi của ngày đó.
-- **Thêm show**: mặc định chọn **ngày âm** và **không lặp lại**. Chọn giờ là app hiện ngay **Show sáng / trưa / chiều / tối lúc mấy giờ** với màu khác nhau, ngày nào có 2 show nhìn là phân biệt được.
-- **SĐT**: thẻ show có nút **Gọi** (xanh lá) và **Zalo** (xanh dương), cả cho chủ tiệc và bầu show.
-- **Tiền show**: bấm **Sửa tiền** để nhập/sửa tiền nhận và tiền bo bất cứ lúc nào. Show lặp lại thì sửa riêng từng lần.
-- **Thu chi**: chọn ngày → bấm ô Hớt tóc / Massage / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. Bấm ✏️ để sửa, 🗑️ để xóa.
-- **Báo cáo**: theo tháng hoặc theo năm, tách rõ:
-  - **Tiền làm** = Hớt tóc + Massage
-  - **Tiền bo tiệm tóc** (riêng)
-  - **Thu show** = tiền nhận show + tiền bo show (chỉ tính show đã diễn; show sắp diễn ghi riêng “dự kiến”)
-  - **Thu khác**, **Chi tiêu** (gom theo nội dung) và **Tiết kiệm được** = tổng thu − tổng chi
-- **Cài đặt**: thanh dung lượng, xóa dữ liệu theo năm (chọn năm → **Xóa năm này** → gõ lại năm để xác nhận), tải file sao lưu.
+- **Mở app là hỏi mật khẩu ngay.** Chưa nhập đúng thì không thấy gì cả. Tắt hẳn app, hoặc để app chạy nền quá 5 phút, thì lần sau phải nhập lại. Nút **🔒** góc phải trên để khóa ngay.
+- **Trang chủ** (từ trên xuống):
+  1. Hôm nay: ngày dương, ngày âm, hôm nay có show không, ngày lễ.
+  2. **Lịch show**: các show sắp tới, nhóm theo ngày (Hôm nay / Ngày mai / Ngày kia…), có giờ và buổi (sáng, chiều, tối) tô màu khác nhau. Chạm 1 show để xem đầy đủ, gọi, mở bản đồ.
+  3. **Thu chi**: 3 ô **Hôm nay / Tuần này / Tháng này** cho thấy ngay số tiền còn lại. Chạm 1 ô để xem chi tiết: tiền làm (hớt tóc + massage), bo tiệm tóc, thu show (nhận + bo), thu khác, tổng thu, tổng chi, còn lại.
+  4. **Lịch âm dương** 3 tháng (VD tháng 11 → 11, 12, 1). Điện thoại xem từng tháng bằng 3 nút tháng; máy tính hiện cả 3. Số to là ngày dương, số nhỏ là ngày âm. **Chỉ ngày có show mới tô màu hồng**, chấm nhỏ màu cho biết show sáng (cam), chiều (xanh), tối (tím). Thu chi không tô màu lên lịch. Ngày lễ chỉ có chấm xám nhỏ, tên lễ ghi dưới mỗi tháng.
+- **Thêm show**: mặc định ngày âm, không lặp lại. Chọn năm âm thì danh sách tháng **tự có tháng nhuận** nếu năm đó có (VD năm 2028 có "5 nhuận"), số ngày trong tháng cũng tự đúng 29 hoặc 30. Không cần tích gì.
+- **Thu chi**: chọn ngày → bấm ô Hớt tóc / Massage / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. ✏️ để sửa, 🗑️ để xóa. Cuối trang cũng có thống kê hôm nay / tuần / tháng.
+- **Báo cáo**: theo tháng hoặc năm, tách riêng tiền làm và tiền bo, có tiết kiệm được bao nhiêu.
+- **Cài đặt**: thanh dung lượng, xóa dữ liệu theo năm, tải file sao lưu, bật thông báo.
 
 ---
 
@@ -233,7 +272,7 @@ data/
 
 ## Dung lượng & chi phí
 
-- Tất cả **0 đồng**: GitHub (kho riêng tư miễn phí), Vercel gói Hobby, cron-job.org.
+- Tất cả **0 đồng**: GitHub (kho riêng tư miễn phí), Vercel gói Hobby, Render gói Free, cron-job.org.
 - Thanh dung lượng trong app tính trên mốc **1 GB** (GitHub khuyên kho dưới 1 GB). Mỗi năm thu chi chỉ khoảng vài trăm KB nên dùng được rất lâu. Khi cần, xóa năm cũ trong **Cài đặt**.
 - GitHub giữ lịch sử từng lần lưu: lỡ xóa nhầm có thể vào kho kim1994-data → bấm vào file → **History** để xem bản cũ.
 
@@ -256,6 +295,7 @@ kim1994/
 ├── api/cron.js             gửi nhắc trước 3 ngày / 1 ngày / 1 tiếng
 ├── api/ics.js              tạo file lịch nhắc
 ├── api/keys.js             tạo khóa thông báo
+├── server.js               máy chủ cho Render (Vercel không dùng)
 ├── api/_lib/…              phần dùng chung của máy chủ
 ├── sw.js                   chạy offline, nhận thông báo, số trên icon
 ├── manifest.webmanifest    thông tin app khi thêm vào màn hình

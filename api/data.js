@@ -48,7 +48,7 @@ function applyOp(arr, action, x) {
 const storageInfo = files => ({ used: files.reduce((a, f) => a + (f.size || 0), 0), limit: LIMIT, files });
 
 module.exports = async (req, res) => {
-  if (!gh.configured()) return res.status(500).json({ error: 'Chưa cài GITHUB_TOKEN và GITHUB_REPO trong Vercel (xem HUONG-DAN.md, Bước 4)' });
+  if (!gh.configured()) return res.status(500).json({ error: 'Chưa cài GITHUB_TOKEN và GITHUB_REPO trong Environment Variables của Vercel/Render (xem HUONG-DAN.md)' });
   if (!requireAuth(req, res)) return;
   try {
     if (req.method === 'GET') {

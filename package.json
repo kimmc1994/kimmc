@@ -1,8 +1,14 @@
 {
   "name": "kim1994",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Quản Lý $ Của Kim - lịch âm dương, show, thu chi",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "web-push": "^3.6.7"
   }

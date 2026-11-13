@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   if (!requireAuth(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Chỉ nhận POST' });
   if (!gh.configured()) return res.status(500).json({ error: 'Chưa cài GITHUB_TOKEN / GITHUB_REPO' });
-  if (!push.ready()) return res.status(400).json({ error: 'Chưa cài khóa thông báo (VAPID) — xem HUONG-DAN.md Bước 7' });
+  if (!push.ready()) return res.status(400).json({ error: 'Chưa cài khóa thông báo (VAPID) — xem HUONG-DAN.md Bước 8' });
   const b = req.body || {};
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   try {
