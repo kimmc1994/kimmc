@@ -179,7 +179,8 @@
   /* ================= Tính tiền ================= */
   function sumRange(from, to) {
     var t = todayISO();
-    var S = { hottoc: 0, massage: 0, botiem: 0, khac: 0, chi: 0, showNhan: 0, showBo: 0, showCount: 0, upNhan: 0, upCount: 0, khacList: [], chiList: [] };
+    var S = { huyList: [], hottoc: 0, massage: 0, botiem: 0, khac: 0, chi: 0, showNhan: 0, showBo: 0, showKhac: 0, showCount: 0, upNhan: 0, upCount: 0, pendCount: 0, pendSum: 0, huyCount: 0, khacList: [], chiList: [] };
+    var now = Date.now();
     var ys = {}; ys[from.slice(0, 4)] = 1; ys[to.slice(0, 4)] = 1;
     Object.keys(ys).forEach(function (y) {
       (state.entries[y] || []).forEach(function (e) {
@@ -191,12 +192,15 @@
     });
     C.occList(state.shows, from, to).forEach(function (o) {
       var m = C.money(o.show, o.iso);
-      if (o.iso <= t) { S.showNhan += m.received; S.showBo += m.tip; S.showCount++; }
+      // Chỉ cộng tiền show khi đã bấm "Đã hoàn thành show"
+      if (m.status === 'done') { S.showNhan += m.received; S.showBo += m.tip; S.showKhac += m.other; S.showCount++; }
+      else if (m.status === 'cancel') { S.huyCount++; S.huyList.push({ o: o, reason: m.cancelReason }); }
+      else if (C.showTimeUTC(o.iso, o.show.time) <= now) { S.pendCount++; S.pendSum += m.received + m.tip; }
       else { S.upNhan += m.received + m.tip; S.upCount++; }
     });
     S.lam = S.hottoc + S.massage;
     S.tiem = S.lam + S.botiem;
-    S.show = S.showNhan + S.showBo;
+    S.show = S.showNhan + S.showBo + S.showKhac;
     S.thu = S.tiem + S.show + S.khac;
     S.con = S.thu - S.chi;
     return S;
@@ -206,7 +210,7 @@
   function alerts() {
     if (!logged()) return [];
     var now = Date.now(), t = todayISO();
-    return C.occList(state.shows, C.addDays(t, -1), C.addDays(t, 4)).map(function (o) {
+    return C.activeOcc(state.shows, C.addDays(t, -1), C.addDays(t, 4)).filter(function (o) { return !C.money(o.show, o.iso).status; }).map(function (o) {
       return Object.assign({}, o, { at: C.showTimeUTC(o.iso, o.show.time) });
     }).filter(function (o) { return o.at > now && o.at - now <= 3 * 86400000; }).map(function (o) {
       var diff = o.at - now, label;
@@ -216,8 +220,22 @@
       return Object.assign(o, { label: label });
     });
   }
+  // Show đã qua giờ diễn nhưng chưa bấm "Đã hoàn thành" hoặc "Hủy"
+  function pendingShows() {
+    if (!logged()) return [];
+    var t = todayISO(), now = Date.now();
+    return C.occList(state.shows, C.addDays(t, -120), t).filter(function (o) {
+      if (C.money(o.show, o.iso).status) return false;
+      if (C.showTimeUTC(o.iso, o.show.time) > now) return false;
+      if ((o.show.repeat || 'none') !== 'none' && o.show.createdAt) {
+        var c = new Date(o.show.createdAt), ci = C.iso(c.getFullYear(), c.getMonth() + 1, c.getDate());
+        if (o.iso < ci) return false;
+      }
+      return true;
+    });
+  }
   function updateBadge() {
-    var n = alerts().length;
+    var n = alerts().length + pendingShows().length;
     if (navigator.setAppBadge) { (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(function () { }); }
   }
   // Khi app đang mở mà chưa bật thông báo máy chủ: nhắc ngay trên máy
@@ -262,7 +280,8 @@
   }
   function renderHeader() {
     var a = alerts();
-    $('#hdr-right').innerHTML = '<button class="icon-btn" data-act="bell" aria-label="Show sắp tới trong 3 ngày">' + icon('bell') + (a.length ? '<span class="badge">' + a.length + '</span>' : '') + '</button>' +
+    var nb = a.length + pendingShows().length;
+    $('#hdr-right').innerHTML = '<button class="icon-btn" data-act="bell" aria-label="Thông báo show">' + icon('bell') + (nb ? '<span class="badge">' + nb + '</span>' : '') + '</button>' +
       '<button class="icon-btn" data-act="lock-now" aria-label="Khóa app">' + icon('lock') + '</button>';
   }
 
@@ -320,10 +339,11 @@
       row('#5B8DEF', 'Tiền làm', S.lam, '') + row('', 'Hớt tóc', S.hottoc, '', 1) + row('', 'Massage', S.massage, '', 1) +
       row('#F08BA8', 'Tiền bo tiệm', S.botiem, '') + '</div>' +
       '<div class="sd-col"><div class="sd-t">Show & khác</div>' +
-      row('#A78BFA', 'Thu show (' + S.showCount + ')', S.show, '') + row('', 'Nhận show', S.showNhan, '', 1) + row('', 'Bo show', S.showBo, '', 1) +
+      row('#A78BFA', 'Thu show (' + S.showCount + ' đã xong)', S.show, '') + row('', 'Nhận show', S.showNhan, '', 1) + row('', 'Bo show', S.showBo, '', 1) + (S.showKhac ? row('', 'Tiền khác show', S.showKhac, '', 1) : '') +
       row('#5CC8B0', 'Thu khác', S.khac, '') + '</div></div>' +
       '<div class="sd-sum"><div><span>Tổng thu</span><b class="pos">' + fmt(S.thu) + '</b></div><div><span>Tổng chi</span><b class="neg">' + fmt(S.chi) + '</b></div>' +
       '<div class="sd-con"><span>Còn lại</span><b class="' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</b></div></div>' +
+      (S.pendCount ? '<p class="hint sd-note pend">⏳ ' + S.pendCount + ' show chờ xác nhận hoàn thành (dự kiến ' + fmt(S.pendSum) + '), chưa cộng vào tổng.</p>' : '') +
       (S.upCount ? '<p class="hint sd-note">Còn ' + S.upCount + ' show sắp diễn trong ' + (key === 'day' ? 'hôm nay' : key === 'week' ? 'tuần' : 'tháng') + ' (dự kiến ' + fmt(S.upNhan) + '), chưa cộng vào tổng.</p>' : '') +
       '</div></section>';
   }
@@ -347,7 +367,7 @@
   }
   function showSchedule() {
     var t = todayISO(), now = Date.now();
-    var occ = C.occList(state.shows, t, C.addDays(t, 45)).filter(function (o) { return C.showTimeUTC(o.iso, o.show.time) > now - 3 * 3600000; });
+    var occ = C.activeOcc(state.shows, t, C.addDays(t, 45)).filter(function (o) { return !C.money(o.show, o.iso).status && C.showTimeUTC(o.iso, o.show.time) > now; });
     var shown = occ.slice(0, 8), groups = [], last = null;
     shown.forEach(function (o) {
       if (!last || last.iso !== o.iso) { last = { iso: o.iso, items: [] }; groups.push(last); }
@@ -371,14 +391,14 @@
   /* ---------- Trang chủ ---------- */
   function renderHome() {
     var t = todayISO(), p = C.parse(t), L = C.toLunar(t), hs = C.holidays(t);
-    var todayShows = C.occList(state.shows, t, t).length;
+    var todayShows = C.activeOcc(state.shows, t, t).length;
     var sun = C.dow(t) === 0 ? ' sun' : '';
     var h = '<section class="hero glass"><div class="hero2">' +
       '<div class="h-sol"><div class="h-lbl">Dương lịch</div><div class="h-big' + sun + '">' + p.d + '</div><div class="h-wd' + sun + '">' + C.weekday(t) + '</div><div class="h-my">Tháng ' + p.m + ' năm ' + p.y + '</div></div>' +
       '<div class="h-lun"><div class="h-lbl">Âm lịch</div><div class="h-big lunar">' + L.day + '</div><div class="h-wd">Tháng ' + L.month + (L.leap ? ' nhuận' : '') + '</div><div class="h-my">Năm ' + C.canChi(L.year) + '</div></div></div>' +
       '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
       hs.map(function (x) { return '<span class="chip-hol ' + x.type + '">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
-    h += phoneAlert();
+    h += confirmBlock() + phoneAlert();
     h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
     h += calendarBlock();
     $('#view-home').innerHTML = h;
@@ -386,6 +406,82 @@
 
   var YEAR_COLORS = ['#16A34A', '#2563EB', '#E11D48', '#D97706', '#7C3AED'];
   function yearColor(y) { return YEAR_COLORS[((y - 2026) % 5 + 5) % 5]; }
+
+  /* ---------- Xác nhận show hoàn thành ---------- */
+  function confirmBlock() {
+    var list = pendingShows(); if (!list.length) return '';
+    return '<section class="card confirm-box"><div class="cf-h">🎤 Xác nhận show hoàn thành (' + list.length + ')</div>' +
+      '<p class="cf-sub">Show đã qua giờ diễn. Tiền show chỉ được cộng vào thu chi sau khi bạn bấm <b>Đã hoàn thành show</b>.</p>' +
+      list.map(function (o) {
+        var P = C.period(o.show.time), m = C.money(o.show, o.iso);
+        return '<div class="cf-row"><div class="cf-info"><b class="cf-name">' + esc(o.show.name) + '</b>' +
+          '<small>' + C.weekday(o.iso) + ' ' + dmy(o.iso) + ' · ' + P.icon + ' ' + P.text + ' · dự kiến ' + fmt(m.received + m.tip) + '</small></div>' +
+          '<div class="cf-btns"><button class="btn btn-sm btn-done" data-act="confirm-show" data-id="' + o.show.id + '" data-d="' + o.iso + '">✅ Đã hoàn thành show</button>' +
+          '<button class="btn btn-sm btn-cancel" data-act="cancel-show" data-id="' + o.show.id + '" data-d="' + o.iso + '">❌ Hủy show</button></div></div>';
+      }).join('') + '</section>';
+  }
+  function statusOf(sh, s) {
+    var m = C.money(sh, s);
+    if (m.status) return m.status;
+    return C.showTimeUTC(s, sh.time) <= Date.now() ? 'pending' : 'future';
+  }
+  function openConfirm(id, s) {
+    var sh = state.shows.find(function (x) { return x.id === id; }); if (!sh) return;
+    var m = C.money(sh, s), P = C.period(sh.time), st = m.status;
+    var b = '<div class="cf-head"><b class="cf-name">' + esc(sh.name) + '</b><br>' + C.weekday(s) + ', ' + dmy(s) + ' · ' + P.icon + ' ' + P.text +
+      (st === 'done' ? '<div class="st st-done">✅ Đã hoàn thành — đang sửa lại tiền</div>' : '') + '</div>' +
+      '<input type="hidden" id="cf-id" value="' + esc(id) + '"><input type="hidden" id="cf-d" value="' + s + '">' +
+      '<p class="hint">Kiểm tra và sửa đúng số tiền thực nhận rồi bấm lưu. Tiền chỉ được cộng vào thu chi sau bước này.</p>' +
+      '<div class="field"><label for="cf-recv">Tiền nhận show</label><input class="inp amount big-inp" id="cf-recv" inputmode="numeric" autocomplete="off" placeholder="0" value="' + (m.received ? C.dots(m.received) : '') + '"></div>' +
+      '<div class="field"><label for="cf-tip">Tiền bo show</label><input class="inp amount big-inp" id="cf-tip" inputmode="numeric" autocomplete="off" placeholder="0" value="' + (m.tip ? C.dots(m.tip) : '') + '"></div>' +
+      '<div class="grid2"><div class="field"><label for="cf-other">Tiền khác của show</label><input class="inp amount" id="cf-other" inputmode="numeric" autocomplete="off" placeholder="0" value="' + (m.other ? C.dots(m.other) : '') + '"></div>' +
+      '<div class="field"><label for="cf-onote">Nội dung tiền khác</label><input class="inp" id="cf-onote" maxlength="200" placeholder="VD: tiền xe, quà…" value="' + esc(m.otherNote) + '"></div></div>' +
+      '<div class="cf-total">Tổng tiền show: <b id="cf-sum">' + fmt(m.received + m.tip + m.other) + '</b></div>' +
+      (st ? '<button class="btn btn-sm cf-reset" data-act="reset-show">↩️ Đặt lại: chưa xác nhận</button>' : '');
+    openSheet('Xác nhận show hoàn thành', b,
+      '<button class="btn btn-cancel" data-act="cancel-show" data-id="' + esc(id) + '" data-d="' + s + '">❌ Hủy show</button>' +
+      '<button class="btn btn-done" data-act="save-confirm">✅ ' + (st === 'done' ? 'Lưu tiền' : 'Đã hoàn thành show') + '</button>');
+  }
+  function setStatus(id, s, patch, msg, btn) {
+    var src = state.shows.find(function (x) { return x.id === id; }); if (!src) return;
+    var sh = JSON.parse(JSON.stringify(src));
+    sh.overrides = sh.overrides || {};
+    var o = Object.assign({}, sh.overrides[s] || {});
+    if (patch === null) { delete o.status; delete o.doneAt; delete o.other; delete o.otherNote; delete o.cancelReason; }
+    else { Object.assign(o, patch); if (patch.status === 'done') delete o.cancelReason; }
+    if (Object.keys(o).length) sh.overrides[s] = o; else delete sh.overrides[s];
+    sh.updatedAt = Date.now();
+    if (btn) busy(btn, true);
+    persist('show', 'upsert', sh).then(function (ok) { if (btn) busy(btn, false); if (ok) { closeSheet(); toast(msg); render(); } });
+    render();
+  }
+  function saveConfirm(btn) {
+    var id = $('#cf-id').value, s = $('#cf-d').value;
+    var other = num($('#cf-other').value), note = $('#cf-onote').value.trim();
+    if (other && !note) return toast('Nhập nội dung tiền khác', 'err');
+    setStatus(id, s, { status: 'done', doneAt: Date.now(), received: num($('#cf-recv').value), tip: num($('#cf-tip').value), other: other, otherNote: note },
+      'Đã xác nhận hoàn thành, tiền show đã được cộng vào thu chi', btn);
+  }
+  function cancelShow(id, s) {
+    var sh = state.shows.find(function (x) { return x.id === id; }); if (!sh) return;
+    var future = C.showTimeUTC(s, sh.time) > Date.now(), P = C.period(sh.time), m = C.money(sh, s);
+    var REASONS = ['Khách hủy tiệc', 'Đổi ngày tiệc', 'Trùng lịch show khác', 'Bận việc riêng', 'Sức khỏe', 'Thời tiết xấu', 'Bầu show đổi người'];
+    var b = '<div class="cf-head"><b class="cf-name">' + esc(sh.name) + '</b><br>' + C.weekday(s) + ', ' + dmy(s) + ' · ' + P.icon + ' ' + P.text + '</div>' +
+      '<div class="cancel-warn">Show này sẽ <b>không tính tiền</b>' + (future ? ' và <b>không nhắc nữa</b>' : '') + ', bị gạch tên và bỏ khỏi lịch.</div>' +
+      '<input type="hidden" id="cx-id" value="' + esc(id) + '"><input type="hidden" id="cx-d" value="' + s + '">' +
+      '<div class="field"><span class="lbl">Chọn nhanh lý do</span><div class="chips">' + REASONS.map(function (r) {
+        return '<button type="button" class="chip" data-act="cx-reason" data-r="' + esc(r) + '">' + esc(r) + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="field"><label for="cx-note">Lý do hủy show *</label><textarea class="inp" id="cx-note" rows="3" maxlength="300" placeholder="VD: Khách báo hoãn tiệc sang tháng sau, đã trả lại tiền cọc…">' + esc(m.cancelReason || '') + '</textarea>' +
+      '<div class="hint">Ghi rõ để sau này xem lại vì sao show bị hủy.</div></div>';
+    openSheet('Hủy show', b, '<button class="btn" data-act="close-sheet">Không hủy</button><button class="btn btn-red" data-act="save-cancel">Xác nhận hủy show</button>');
+    setTimeout(function () { var t = $('#cx-note'); if (t && !t.value) t.focus(); }, 320);
+  }
+  function saveCancel(btn) {
+    var note = $('#cx-note').value.trim();
+    if (!note) { $('#cx-note').focus(); return toast('Nhập lý do hủy show', 'err'); }
+    setStatus($('#cx-id').value, $('#cx-d').value, { status: 'cancel', doneAt: Date.now(), cancelReason: note }, 'Đã hủy show, không tính tiền', btn);
+  }
 
   /* ---------- Số điện thoại tạm (00000, 11111…) cần cập nhật ---------- */
   function fakePhone(p) { var d = String(p || '').replace(/\D/g, ''); return /(\d)\1{4,}/.test(d); }
@@ -431,7 +527,7 @@
     var lead = (C.dow(first) + 6) % 7, t = todayISO();
     var byDay = {};
     var tips = {};
-    C.occList(state.shows, first, last).forEach(function (o) {
+    C.activeOcc(state.shows, first, last).forEach(function (o) {
       var P = C.period(o.show.time);
       (byDay[o.iso] = byDay[o.iso] || []).push(P.key);
       (tips[o.iso] = tips[o.iso] || []).push(P.icon + ' ' + P.clock + ' ' + P.name.toLowerCase() + ' – ' + o.show.name + (o.show.address ? '\n   📍 ' + o.show.address : ''));
@@ -487,14 +583,26 @@
   /* ---------- Thẻ show ---------- */
   function showCard(o, compact) {
     var sh = o.show, s = o.iso, p = C.parse(s), L = C.toLunar(s), P = C.period(sh.time), m = C.money(sh, s);
-    var past = s < todayISO(), bn = bauName(sh), bau = bauOf(sh);
+    var st = statusOf(sh, s), past = st !== 'future', bn = bauName(sh), bau = bauOf(sh);
+    var stTag = st === 'done' ? '<div class="st st-done">✅ Đã hoàn thành</div>' : st === 'cancel' ? '<div class="st st-cancel">❌ Đã hủy — không tính tiền</div>' + (m.cancelReason ? '<div class="cx-reason">📝 Lý do hủy: ' + esc(m.cancelReason) + '</div>' : '') : st === 'pending' ? '<div class="st st-pend">⏳ Chờ xác nhận hoàn thành</div>' : '';
     var rep = sh.repeat && sh.repeat !== 'none' ? ' · 🔁 ' + REPEAT[sh.repeat] + ' (lịch ' + (sh.dateType === 'am' ? 'âm' : 'dương') + ')' : '';
     var mapBtn = sh.map ? '<a class="btn btn-sm" href="' + esc(safeUrl(sh.map)) + '" target="_blank" rel="noopener">' + icon('pin') + ' Bản đồ</a>'
       : (sh.address ? '<a class="btn btn-sm" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(sh.address) + '" target="_blank" rel="noopener">' + icon('pin') + ' Bản đồ</a>' : '');
-    return '<article class="show-card ' + (compact ? 'inner' : 'glass') + (past ? ' past' : '') + '">' +
+    var actions = st === 'future'
+      ? '<button class="btn btn-sm" data-act="ics" data-id="' + sh.id + '" data-d="' + s + '">' + icon('alarm') + ' Thêm vào lịch nhắc</button>' +
+        '<button class="btn btn-sm" data-act="show-money" data-id="' + sh.id + '" data-d="' + s + '">' + icon('money') + ' Sửa tiền</button>' +
+        '<button class="btn btn-sm danger" data-act="cancel-show" data-id="' + sh.id + '" data-d="' + s + '">Hủy lần này</button>'
+      : st === 'pending'
+        ? '<button class="btn btn-sm btn-done" data-act="confirm-show" data-id="' + sh.id + '" data-d="' + s + '">✅ Đã hoàn thành show</button>' +
+          '<button class="btn btn-sm btn-cancel" data-act="cancel-show" data-id="' + sh.id + '" data-d="' + s + '">❌ Hủy show</button>'
+        : st === 'done'
+          ? '<button class="btn btn-sm" data-act="confirm-show" data-id="' + sh.id + '" data-d="' + s + '">' + icon('money') + ' Sửa tiền</button>'
+          : '<button class="btn btn-sm" data-act="cancel-show" data-id="' + sh.id + '" data-d="' + s + '">📝 Sửa lý do</button>' +
+            '<button class="btn btn-sm" data-act="reset-show" data-id="' + sh.id + '" data-d="' + s + '">↩️ Khôi phục show</button>';
+    return '<article class="show-card ' + (compact ? 'inner' : 'glass') + (past ? ' past' : '') + (st === 'cancel' ? ' cancelled' : '') + '">' +
       '<div class="sc-date"><div class="sc-d">' + p.d + '</div><div class="sc-m">Tháng ' + p.m + '</div><div class="sc-l">' + L.day + '/' + L.month + (L.leap ? 'N' : '') + ' âm</div></div>' +
       '<div class="sc-body"><span class="tbadge t-' + P.key + '">' + P.icon + ' Show ' + P.name.toLowerCase() + ' · ' + P.clock + '</span>' +
-      '<h3>' + esc(sh.name) + '</h3><div class="hint">' + C.weekday(s) + ', ' + dmy(s) + rep + '</div>' +
+      '<h3>' + esc(sh.name) + '</h3><div class="hint">' + C.weekday(s) + ', ' + dmy(s) + rep + '</div>' + stTag +
       '<div class="info">' +
       (sh.host ? '<div>' + icon('user') + '<span>Chủ tiệc: <b>' + esc(sh.host) + '</b></span></div>' : '') +
       (bn ? '<div>' + icon('star') + '<span>Bầu show: <b>' + esc(bn) + '</b></span></div>' : '') +
@@ -502,10 +610,10 @@
       (sh.note ? '<div>' + icon('note') + '<span>' + esc(sh.note) + '</span></div>' : '') + '</div>' +
       (sh.phone ? '<div class="contact"><span class="who">SĐT liên hệ: ' + esc(sh.phone) + '</span>' + contactBtns(sh.phone) + '</div>' : '') +
       (bau && bau.phone ? '<div class="contact"><span class="who">Bầu show ' + esc(bau.name) + ': ' + esc(bau.phone) + '</span>' + contactBtns(bau.phone) + '</div>' : '') +
-      '<div class="money-line"><span>Nhận show: <b>' + fmt(m.received) + '</b></span><span>Bo show: <b>' + (m.tip ? fmt(m.tip) : 'chưa nhập') + '</b></span></div>' +
+      (st === 'cancel' ? '' : '<div class="money-line' + (st === 'done' ? '' : ' expected') + '"><span>' + (st === 'done' ? 'Đã nhận' : 'Dự kiến nhận') + ': <b>' + fmt(m.received) + '</b></span><span>Bo show: <b>' + (m.tip ? fmt(m.tip) : 'chưa nhập') + '</b></span>' +
+        (m.other ? '<span>Khác: <b>' + fmt(m.other) + '</b>' + (m.otherNote ? ' (' + esc(m.otherNote) + ')' : '') + '</span>' : '') + '</div>') +
       '<div class="sc-actions">' + mapBtn +
-      '<button class="btn btn-sm" data-act="ics" data-id="' + sh.id + '" data-d="' + s + '">' + icon('alarm') + ' Thêm vào lịch nhắc</button>' +
-      '<button class="btn btn-sm" data-act="show-money" data-id="' + sh.id + '" data-d="' + s + '">' + icon('money') + ' Sửa tiền</button>' +
+      actions +
       '<button class="btn btn-sm" data-act="edit-show" data-id="' + sh.id + '">' + icon('edit') + ' Sửa</button>' +
       '<button class="btn btn-sm danger" data-act="del-show" data-id="' + sh.id + '" aria-label="Xóa show">' + icon('trash') + '</button>' +
       '</div></div></article>';
@@ -707,8 +815,9 @@
     var src = state.shows.find(function (x) { return x.id === $('#sm-id').value; }); if (!src) return;
     var sh = JSON.parse(JSON.stringify(src)), s = $('#sm-d').value;
     var received = num($('#sm-recv').value), tip = num($('#sm-tip').value);
-    if (!sh.repeat || sh.repeat === 'none') { sh.received = received; sh.tip = tip; }
-    else { sh.overrides = sh.overrides || {}; sh.overrides[s] = { received: received, tip: tip }; }
+    sh.overrides = sh.overrides || {};
+    if ((!sh.repeat || sh.repeat === 'none') && !sh.overrides[s]) { sh.received = received; sh.tip = tip; }
+    else sh.overrides[s] = Object.assign({}, sh.overrides[s] || {}, { received: received, tip: tip });
     sh.updatedAt = Date.now();
     busy(btn, true);
     persist('show', 'upsert', sh).then(function (ok) { busy(btn, false); if (ok) { closeSheet(); toast('Đã lưu tiền show'); render(); } });
@@ -781,9 +890,10 @@
       }).join('') + '</div>' +
       '<h3 class="sub-h">Các khoản trong ngày</h3>' + (es.length ? '<div class="stack">' + es.map(entryRow).join('') + '</div>' : '<p class="hint">Chưa có khoản nào. Bấm một ô ở trên để ghi.</p>') +
       (occ.length ? '<h3 class="sub-h">Tiền show trong ngày</h3><div class="stack">' + occ.map(function (o) {
-        var m = C.money(o.show, o.iso), P = C.period(o.show.time);
+        var m = C.money(o.show, o.iso), P = C.period(o.show.time), st = statusOf(o.show, o.iso);
         return '<div class="entry"><span class="emo">🎤</span><div class="t"><div class="n">' + esc(o.show.name) + '</div><div class="d">' + P.icon + ' ' + P.text + ' · nhận ' + fmt(m.received) + ' · bo ' + fmt(m.tip) + '</div></div>' +
-          '<button class="btn btn-sm" data-act="show-money" data-id="' + o.show.id + '" data-d="' + o.iso + '">Sửa tiền</button></div>';
+          '<button class="btn btn-sm' + (st === 'pending' ? ' btn-done' : '') + '" data-act="' + (st === 'future' ? 'show-money' : st === 'cancel' ? 'reset-show' : 'confirm-show') + '" data-id="' + o.show.id + '" data-d="' + o.iso + '">' +
+          (st === 'pending' ? '✅ Xác nhận' : st === 'done' ? '✅ Sửa tiền' : st === 'cancel' ? '❌ Đã hủy · khôi phục' : 'Sửa tiền') + '</button></div>';
       }).join('') + '</div>' : '') + '</section></div>';
     h += statsBlock(false);
     $('#view-money').innerHTML = h;
@@ -854,9 +964,15 @@
       '<div class="line total"><span>Tiền làm (hớt tóc + massage)</span><b>' + fmt(S.lam) + '</b></div>' +
       '<div class="line total"><span>Tiền bo tiệm tóc (riêng)</span><b>' + fmt(S.botiem) + '</b></div>' +
       '<div class="line total"><span>Tổng tiệm tóc</span><b class="pos">' + fmt(S.tiem) + '</b></div></section>' +
-      '<section class="card glass"><h2>🎤 Show</h2><div class="line"><span>Số show đã diễn</span><b>' + S.showCount + '</b></div>' +
+      '<section class="card glass"><h2>🎤 Show</h2><div class="line"><span>Số show đã hoàn thành</span><b>' + S.showCount + '</b></div>' +
       line('Tiền nhận show', S.showNhan) + line('Tiền bo show', S.showBo) +
       '<div class="line total"><span>Tổng thu show</span><b class="pos">' + fmt(S.show) + '</b></div>' +
+      (S.showKhac ? line('Tiền khác của show', S.showKhac) : '') +
+      (S.pendCount ? '<div class="line sub"><span>⏳ Chờ xác nhận: ' + S.pendCount + ' show (chưa tính)</span><span>' + fmt(S.pendSum) + '</span></div>' : '') +
+      (S.huyCount ? '<div class="line sub"><span>❌ Đã hủy: ' + S.huyCount + ' show (không tính)</span><span></span></div>' +
+        '<details class="cx-list"><summary>Xem lý do các show đã hủy</summary>' + S.huyList.map(function (x) {
+          return '<div class="cx-item"><b>' + dm(x.o.iso) + ' · ' + esc(x.o.show.name) + '</b><br><small>📝 ' + esc(x.reason || 'Không ghi lý do') + '</small></div>';
+        }).join('') + '</details>' : '') +
       (S.upCount ? '<div class="line sub"><span>Sắp diễn: ' + S.upCount + ' show (chưa tính vào tổng)</span><span>' + fmt(S.upNhan) + '</span></div>' : '') + '</section>' +
       '<section class="card glass"><h2>💰 Thu khác · ' + fmt(S.khac) + '</h2>' + groupList(S.khacList) + '</section>' +
       '<section class="card glass"><h2>🧾 Chi tiêu · ' + fmt(S.chi) + '</h2>' + groupList(S.chiList) + '</section></div>';
@@ -1063,11 +1179,12 @@
   }
 
   function openBell() {
-    var a = alerts();
+    var a = alerts(), pend = pendingShows();
     var perm = 'Notification' in window ? Notification.permission : 'unsupported';
-    var b = a.length ? a.map(function (o) { return '<div class="alert-row"><div class="al-l">⏰ ' + o.label + '</div>' + showCard(o, true) + '</div>'; }).join('')
-      : '<p class="empty-state">Không có show nào trong 3 ngày tới.</p>';
-    openSheet('Show sắp tới (3 ngày)', b, perm !== 'granted' ? '<button class="btn btn-primary" data-act="push-on">' + icon('bell') + ' Bật thông báo</button>' : '');
+    var b = (pend.length ? '<div class="al-l pend">⏳ Chờ xác nhận hoàn thành (' + pend.length + ')</div>' + pend.map(function (o) { return '<div class="alert-row">' + showCard(o, true) + '</div>'; }).join('') + '<div class="al-l">⏰ Sắp diễn</div>' : '') +
+      (a.length ? a.map(function (o) { return '<div class="alert-row"><div class="al-l">⏰ ' + o.label + '</div>' + showCard(o, true) + '</div>'; }).join('')
+      : '<p class="empty-state">Không có show nào trong 3 ngày tới.</p>');
+    openSheet('Thông báo show', b, perm !== 'granted' ? '<button class="btn btn-primary" data-act="push-on">' + icon('bell') + ' Bật thông báo</button>' : '');
   }
 
   /* ================= Sự kiện ================= */
@@ -1093,6 +1210,19 @@
     'save-show': function (el) { saveShow(el); },
     'date-type': function (el) { setDateType(el.dataset.t); },
     'show-money': function (el) { openShowMoney(el.dataset.id, el.dataset.d); },
+    'confirm-show': function (el) { openConfirm(el.dataset.id, el.dataset.d); },
+    'save-confirm': function (el) { saveConfirm(el); },
+    'save-cancel': function (el) { saveCancel(el); },
+    'cx-reason': function (el) {
+      var t = $('#cx-note'), r = el.dataset.r;
+      t.value = t.value.trim() ? (t.value.indexOf(r) >= 0 ? t.value : t.value.trim() + '. ' + r) : r;
+      el.classList.add('on'); t.focus();
+    },
+    'cancel-show': function (el) { cancelShow(el.dataset.id, el.dataset.d); },
+    'reset-show': function (el) {
+      var id = el.dataset.id || ($('#cf-id') && $('#cf-id').value), d = el.dataset.d || ($('#cf-d') && $('#cf-d').value);
+      if (confirm('Đặt lại show này về "chờ xác nhận"? Tiền sẽ chưa được tính cho tới khi bạn xác nhận lại.')) setStatus(id, d, null, 'Đã đặt lại, show đang chờ xác nhận');
+    },
     'save-show-money': function (el) { saveShowMoney(el); },
     ics: function (el) { openIcs(el.dataset.id, el.dataset.d); },
     'show-tab': function (el) { state.showTab = el.dataset.t; renderShows(); },
@@ -1150,6 +1280,7 @@
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.classList.contains('amount')) { var n = num(t.value); t.value = n ? C.dots(n) : ''; }
+    if (/^cf-(recv|tip|other)$/.test(t.id)) $('#cf-sum').textContent = fmt(num($('#cf-recv').value) + num($('#cf-tip').value) + num($('#cf-other').value));
     if (t.id === 'show-q') { state.showQuery = t.value; fillShowList(); }
     if (t.closest && t.closest('#show-form')) updateShowPreview();
   });

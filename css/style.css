@@ -571,3 +571,47 @@ h2 { font-weight: 800; }
 .day-btn { font-size: 16px; white-space: nowrap; }
 .datebar { padding: 12px 14px; }
 .pick-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); pointer-events: none; }
+
+/* ================= Bản 4: xác nhận show hoàn thành ================= */
+.confirm-box { background: rgba(220, 252, 231, .92); border: 1.5px solid #22C55E; border-radius: 22px; }
+.cf-h { font-weight: 800; font-size: 18px; color: #166534; }
+.cf-sub { font-size: 14.5px; color: #166534; margin: 4px 0 6px; }
+.cf-row { padding: 10px 0; border-top: 1px solid rgba(34, 197, 94, .35); display: grid; gap: 8px; }
+.cf-info { display: grid; }
+.cf-name { color: #BE123C; font-size: 16.5px; font-weight: 800; }
+.cf-info small { color: #14532D; font-size: 14px; }
+.cf-btns { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.btn-done { background: linear-gradient(135deg, #22C55E, #16A34A); color: #fff; border: 0; }
+.btn-cancel { background: #fff; color: #DC2626; border: 1.5px solid rgba(220, 38, 38, .45); }
+.sheet-f .btn-cancel { flex: .8; }
+.cf-head { font-size: 15.5px; color: var(--text2); margin-bottom: 4px; }
+.cf-total { margin: 4px 0 10px; padding: 10px 14px; border-radius: 14px; background: rgba(34, 197, 94, .14); font-size: 16px; }
+.cf-total b { color: var(--green); font-size: 20px; }
+.cf-reset { margin-top: 4px; }
+.st { display: inline-block; margin-top: 6px; padding: 4px 11px; border-radius: 999px; font-size: 14px; font-weight: 800; }
+.st-done { background: rgba(34, 197, 94, .16); color: #15803D; }
+.st-cancel { background: rgba(220, 38, 38, .12); color: #B91C1C; }
+.st-pend { background: rgba(245, 158, 11, .18); color: #B45309; }
+.show-card.cancelled h3 { text-decoration: line-through; opacity: .7; }
+.money-line.expected { background: var(--fill); }
+.money-line.expected b { color: var(--text); }
+.sd-note.pend { color: #B45309; font-weight: 700; }
+.al-l.pend { color: #B45309; }
+@media (prefers-color-scheme: dark) {
+  .confirm-box { background: rgba(20, 83, 45, .5); }
+  .cf-h, .cf-sub, .cf-info small { color: #BBF7D0; }
+  .cf-name { color: #FDA4AF; }
+  .btn-cancel { background: transparent; color: #FCA5A5; }
+  .st-done { color: #86EFAC; } .st-cancel { color: #FCA5A5; } .st-pend, .sd-note.pend, .al-l.pend { color: #FCD34D; }
+}
+.sheet-f .btn { min-width: 0; white-space: normal; padding: 6px 10px; line-height: 1.2; text-align: center; }
+.sheet-f .btn-done { flex: 1.4; }
+.cf-btns .btn { white-space: normal; line-height: 1.2; padding: 6px 8px; }
+.show-card.past .sc-date { background: #9CA3AF; color: #fff; } .show-card.past .sc-l { border-top-color: rgba(255,255,255,.5); }
+/* Lý do hủy show */
+.cancel-warn { margin: 6px 0 12px; padding: 10px 12px; border-radius: 14px; background: rgba(220, 38, 38, .1); color: #B91C1C; font-size: 15px; }
+.cx-reason { margin-top: 6px; padding: 8px 11px; border-radius: 12px; background: rgba(220, 38, 38, .08); color: #7F1D1D; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.cx-list summary { font-size: 14.5px; }
+.cx-item { padding: 7px 0; border-bottom: 1px solid var(--hair); font-size: 14.5px; }
+.cx-item small { color: var(--text2); font-size: 14px; }
+@media (prefers-color-scheme: dark) { .cancel-warn { color: #FCA5A5; } .cx-reason { color: #FECACA; background: rgba(220, 38, 38, .18); } }

@@ -23,7 +23,17 @@ function cleanShow(s) {
   if (!id(s.id) || !str(s.name) || !ISO.test(s.date || '')) throw Object.assign(new Error('Dữ liệu show không hợp lệ'), { code: 400 });
   const lunar = s.lunar ? { d: +s.lunar.d || 1, m: +s.lunar.m || 1, y: +s.lunar.y || 2000, leap: s.lunar.leap ? 1 : 0 } : null;
   const overrides = {};
-  for (const [k, v] of Object.entries(s.overrides || {})) if (ISO.test(k) && v) overrides[k] = { received: money(v.received), tip: money(v.tip) };
+  for (const [k, v] of Object.entries(s.overrides || {})) {
+    if (!ISO.test(k) || !v || typeof v !== 'object') continue;
+    const o = {};
+    if (v.received != null) o.received = money(v.received);
+    if (v.tip != null) o.tip = money(v.tip);
+    if (v.other) o.other = money(v.other);
+    if (v.otherNote) o.otherNote = str(v.otherNote, 200);
+    if (v.cancelReason) o.cancelReason = str(v.cancelReason, 300);
+    if (v.status === 'done' || v.status === 'cancel') { o.status = v.status; o.doneAt = Number(v.doneAt) || Date.now(); }
+    if (Object.keys(o).length) overrides[k] = o;
+  }
   return {
     id: id(s.id), name: str(s.name, 120), host: str(s.host, 120), bauId: id(s.bauId), bauName: str(s.bauName, 120),
     address: str(s.address, 400), map: str(s.map, 600), phone: str(s.phone, 30),

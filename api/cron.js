@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
     const subs = cfg.pushSubs || [];
     if (!subs.length) return res.json({ ok: true, note: 'Chưa có thiết bị nào bật thông báo' });
     const sent = cfg.sent || {};
-    const upcoming = Core.occList(cfg.shows || [], Core.addDays(today, -1), Core.addDays(today, 4))
+    const upcoming = Core.activeOcc(cfg.shows || [], Core.addDays(today, -1), Core.addDays(today, 4))
       .map(o => Object.assign({}, o, { at: Core.showTimeUTC(o.iso, o.show.time) }))
       .filter(o => o.at > now);
     const badge = upcoming.filter(o => o.at - now <= 3 * 86400e3).length;

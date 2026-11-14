@@ -213,6 +213,11 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 - **Thu chi**: chọn ngày → bấm ô Hớt tóc / Massage / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. ✏️ để sửa, 🗑️ để xóa. Cuối trang cũng có thống kê hôm nay / tuần / tháng.
 - **Báo cáo**: theo tháng hoặc năm, tách riêng tiền làm và tiền bo, có tiết kiệm được bao nhiêu.
 - **Cài đặt**: thanh dung lượng, xóa dữ liệu theo năm, tải file sao lưu, bật thông báo.
+- **Xác nhận show hoàn thành**: khi show đã qua giờ diễn, app **không nhắc nữa** mà hiện khung xanh **"Xác nhận show hoàn thành"** ở đầu trang chủ (chuông cũng đếm số show chờ xác nhận).
+  - Bấm **✅ Đã hoàn thành show** → kiểm tra/sửa **Tiền nhận show**, **Tiền bo show**, **Tiền khác của show** (kèm nội dung) → bấm **✅ Đã hoàn thành show**. Lúc này tiền mới được cộng vào thu chi và show biến khỏi khung xác nhận.
+  - Bấm **❌ Hủy show** → chọn nhanh lý do (Khách hủy tiệc, Đổi ngày tiệc, Trùng lịch show khác…) hoặc tự gõ vào ô **Lý do hủy show** (bắt buộc) → bấm **Xác nhận hủy show**. Show không tính tiền, bị gạch tên, bỏ khỏi lịch. Lý do hiện trên thẻ show (bấm **📝 Sửa lý do** để sửa) và trong **Báo cáo** → mục Show → **Xem lý do các show đã hủy**.
+  - Show chưa xác nhận thì **chưa cộng tiền** (thống kê ghi riêng "chờ xác nhận"). Show sắp tới cũng có nút **Hủy lần này** nếu biết trước là không đi diễn.
+  - Lỡ bấm nhầm: vào tab **Show** → **Đã diễn** → bấm **↩️ Khôi phục show** (show đã hủy) hoặc **Sửa tiền** (show đã hoàn thành).
 - **Kiểm tra kết nối dữ liệu** (cuối trang Cài đặt): tự kiểm tra mạng, máy chủ (Vercel hay Render), biến GITHUB_TOKEN / GITHUB_REPO, token còn hạn không, mở được kho dữ liệu không, có quyền ghi không. Dòng nào lỗi có dấu ❌ kèm **"👉 Cách sửa"**. Bấm **Kiểm tra lại** sau khi sửa.
 - **Nhắc cập nhật số điện thoại**: số có 5 chữ số giống nhau liên tiếp trở lên (00000, 11111…) được coi là **số tạm**. Trang chủ hiện khung vàng "Cần cập nhật số điện thoại" kèm nút **Cập nhật** để sửa nhanh. Áp dụng cho show sắp diễn và danh sách bầu show.
 - **Lịch**: Chủ nhật số màu đỏ. Mỗi năm một màu (2026 xanh lá, 2027 xanh biển, 2028 đỏ…). Ngày lễ dương nền xanh, ngày lễ âm nền vàng. Trên máy tính, rê chuột vào ngày có show sẽ hiện giờ, tên show, địa chỉ.
@@ -246,7 +251,9 @@ data/
    "time": "09:30",
    "repeat": "none",                         // "none" | "month" | "year"
    "received": 2500000, "tip": 0,            // tiền nhận show, tiền bo show
-   "overrides": { "2027-01-07": { "received": 3000000, "tip": 200000 } },  // tiền riêng từng lần (show lặp)
+   "overrides": { "2026-11-28": { "status": "done", "received": 2500000, "tip": 300000, "other": 50000, "otherNote": "tiền xe" },
+                  "2026-12-05": { "status": "cancel", "cancelReason": "Khách hủy tiệc, hoãn sang tháng 12" } },
+                                             // tiền + trạng thái từng lần diễn: status "done" = đã hoàn thành, "cancel" = đã hủy
    "note": ""
  }],
  "bauShows": [{ "id": "mwf93wr9ic0vi", "name": "Bầu Hải", "phone": "0909123456" }],
