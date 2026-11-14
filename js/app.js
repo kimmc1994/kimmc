@@ -153,9 +153,9 @@
     s.classList.remove('open'); document.body.classList.remove('noscroll');
     setTimeout(function () { if (g === sheetGen) { s.hidden = true; s.innerHTML = ''; } }, 260);
   }
-  function busy(btn, on) {
+  function busy(btn, on, label) {
     if (!btn) return;
-    if (on) { btn.disabled = true; btn.dataset.t = btn.innerHTML; btn.innerHTML = 'Đang lưu…'; }
+    if (on) { btn.disabled = true; btn.dataset.t = btn.innerHTML; btn.innerHTML = label || 'Đang lưu…'; }
     else if (btn.dataset.t) { btn.disabled = false; btn.innerHTML = btn.dataset.t; }
   }
   function line(label, val, cls) { return '<div class="line"><span>' + label + '</span><b class="' + (cls || '') + '">' + fmt(val) + '</b></div>'; }
@@ -372,14 +372,42 @@
   function renderHome() {
     var t = todayISO(), p = C.parse(t), L = C.toLunar(t), hs = C.holidays(t);
     var todayShows = C.occList(state.shows, t, t).length;
-    var h = '<section class="hero glass"><div class="hero-top"><div class="hero-day">' + p.d + '</div>' +
-      '<div class="hero-txt"><div class="hero-wd">' + C.weekday(t) + '</div><div class="hero-my">Tháng ' + p.m + ', ' + p.y + '</div></div>' +
-      '<div class="hero-lun"><span>Âm lịch</span><b>' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + '</b><small>' + C.canChi(L.year) + '</small></div></div>' +
+    var sun = C.dow(t) === 0 ? ' sun' : '';
+    var h = '<section class="hero glass"><div class="hero2">' +
+      '<div class="h-sol"><div class="h-lbl">Dương lịch</div><div class="h-big' + sun + '">' + p.d + '</div><div class="h-wd' + sun + '">' + C.weekday(t) + '</div><div class="h-my">Tháng ' + p.m + ' năm ' + p.y + '</div></div>' +
+      '<div class="h-lun"><div class="h-lbl">Âm lịch</div><div class="h-big lunar">' + L.day + '</div><div class="h-wd">Tháng ' + L.month + (L.leap ? ' nhuận' : '') + '</div><div class="h-my">Năm ' + C.canChi(L.year) + '</div></div></div>' +
       '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
-      hs.map(function (x) { return '<span class="chip-soft">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
+      hs.map(function (x) { return '<span class="chip-hol ' + x.type + '">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
+    h += phoneAlert();
     h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
     h += calendarBlock();
     $('#view-home').innerHTML = h;
+  }
+
+  var YEAR_COLORS = ['#16A34A', '#2563EB', '#E11D48', '#D97706', '#7C3AED'];
+  function yearColor(y) { return YEAR_COLORS[((y - 2026) % 5 + 5) % 5]; }
+
+  /* ---------- Số điện thoại tạm (00000, 11111…) cần cập nhật ---------- */
+  function fakePhone(p) { var d = String(p || '').replace(/\D/g, ''); return /(\d)\1{4,}/.test(d); }
+  function phoneTodo() {
+    var t = todayISO(), out = [];
+    state.shows.forEach(function (sh) {
+      if (!fakePhone(sh.phone)) return;
+      var next = C.occurrences(sh, t, C.addDays(t, 400))[0];
+      if ((sh.repeat || 'none') === 'none' && sh.date < t) return;
+      out.push({ kind: 'show', id: sh.id, name: sh.name, phone: sh.phone, when: next || sh.date });
+    });
+    state.baus.forEach(function (b) { if (fakePhone(b.phone)) out.push({ kind: 'bau', id: b.id, name: b.name, phone: b.phone }); });
+    return out;
+  }
+  function phoneAlert() {
+    var list = phoneTodo(); if (!list.length) return '';
+    return '<section class="card warn"><div class="warn-h">📞 Cần cập nhật số điện thoại (' + list.length + ')</div>' +
+      list.map(function (x) {
+        return '<div class="warn-row"><span><b>' + (x.kind === 'bau' ? 'Bầu show ' : 'Show ') + esc(x.name) + '</b><br><small>Đang để số tạm ' + esc(x.phone) +
+          (x.when ? ' · diễn ' + dm(x.when) : '') + '</small></span>' +
+          '<button class="btn btn-sm" data-act="' + (x.kind === 'bau' ? 'edit-bau' : 'edit-show') + '" data-id="' + x.id + '">' + icon('edit') + ' Cập nhật</button></div>';
+      }).join('') + '</section>';
   }
 
   /* ---------- Lịch âm dương 3 tháng ---------- */
@@ -393,7 +421,7 @@
       '<button class="btn btn-sm" data-act="cal-today">Tháng này</button>' +
       '<button class="icon-btn sm" data-act="cal-next" aria-label="Tới 1 tháng">' + icon('chevR') + '</button></div></div>' +
       '<div class="seg cal-tabs">' + months.map(function (x, i) {
-        return '<button class="' + (i === sel ? 'on' : '') + '" data-act="cal-pick" data-i="' + i + '">Tháng ' + x[1] + (x[0] !== C.parse(todayISO()).y ? ' / ' + String(x[0]).slice(2) : '') + '</button>';
+        return '<button class="' + (i === sel ? 'on' : '') + '" data-act="cal-pick" data-i="' + i + '">Tháng ' + x[1] + ' <span class="yr-tag" style="--yc:' + yearColor(x[0]) + '">' + x[0] + '</span></button>';
       }).join('') + '</div>' +
       '<div class="months" data-sel="' + sel + '">' + months.map(function (x, i) { return monthHTML(x[0], x[1], i === sel); }).join('') + '</div>' +
       '<div class="cal-legend"><span><i class="lg lg-show"></i>Có show</span><span><i class="lg lg-today"></i>Hôm nay</span><span><i class="lg lg-hol"></i>Ngày lễ</span><span><b>15</b> dương · <small>12</small> âm</span></div></section>';
@@ -402,25 +430,31 @@
     var first = C.iso(y, m, 1), n = C.dim(y, m), last = C.iso(y, m, n);
     var lead = (C.dow(first) + 6) % 7, t = todayISO();
     var byDay = {};
-    C.occList(state.shows, first, last).forEach(function (o) { (byDay[o.iso] = byDay[o.iso] || []).push(C.period(o.show.time).key); });
+    var tips = {};
+    C.occList(state.shows, first, last).forEach(function (o) {
+      var P = C.period(o.show.time);
+      (byDay[o.iso] = byDay[o.iso] || []).push(P.key);
+      (tips[o.iso] = tips[o.iso] || []).push(P.icon + ' ' + P.clock + ' ' + P.name.toLowerCase() + ' – ' + o.show.name + (o.show.address ? '\n   📍 ' + o.show.address : ''));
+    });
     var cells = '', hols = [];
     for (var i = 0; i < lead; i++) cells += '<div class="cell empty"></div>';
     for (var d = 1; d <= n; d++) {
       var s = C.iso(y, m, d), L = C.toLunar(s), hs = C.holidays(s), sh = byDay[s] || [];
       if (hs.length) hols.push({ s: s, L: L, hs: hs });
-      var cls = 'cell' + (s === t ? ' today' : '') + (sh.length ? ' show' : '') + (hs.length ? ' hol' : '') + (s < t ? ' past' : '');
+      var cls = 'cell' + (s === t ? ' today' : '') + (sh.length ? ' show' : '') + (hs.length ? ' hol' : '') + (s < t ? ' past' : '') + (C.dow(s) === 0 ? ' sun' : '');
+      var tip = (tips[s] || []).concat(hs.map(function (x) { return '🎉 ' + x.name; })).join('\n');
       var lun = L.day === 1 ? '1/' + L.month + (L.leap ? 'n' : '') : L.day;
       var lbl = d + ' tháng ' + m + ', âm ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + (sh.length ? ', có ' + sh.length + ' show' : '') + (hs.length ? ', ' + hs.map(function (x) { return x.name; }).join(', ') : '');
-      cells += '<button class="' + cls + '" data-act="day" data-d="' + s + '" aria-label="' + esc(lbl) + '"><span class="sol">' + d + '</span><span class="lun' + (L.day === 1 ? ' l1' : '') + '">' + lun + '</span>' +
+      cells += '<button class="' + cls + '" data-act="day" data-d="' + s + '" aria-label="' + esc(lbl) + '"' + (tip ? ' data-tip="' + esc(tip) + '"' : '') + '><span class="sol">' + d + '</span><span class="lun' + (L.day === 1 ? ' l1' : '') + '">' + lun + '</span>' +
         (sh.length ? '<span class="pips">' + sh.slice(0, 3).map(function (k) { return '<i class="pip p-' + k + '"></i>'; }).join('') + '</span>' : (hs.length ? '<i class="hdot"></i>' : '')) + '</button>';
     }
     var L1 = C.toLunar(first), L2 = C.toLunar(last);
     var lr = 'Âm: tháng ' + L1.month + (L1.leap ? ' nhuận' : '') + (L1.month !== L2.month || L1.leap !== L2.leap ? ' – ' + L2.month + (L2.leap ? ' nhuận' : '') : '');
-    return '<section class="month glass' + (active ? ' active' : '') + '"><header class="month-h"><h3>Tháng ' + m + ' <span>' + y + '</span></h3><p>' + lr + '</p></header>' +
+    return '<section class="month glass' + (active ? ' active' : '') + '" style="--yc:' + yearColor(y) + '"><header class="month-h"><h3>Tháng ' + m + ' <span class="yr-tag">' + y + '</span></h3><p>' + lr + '</p></header>' +
       '<div class="wk"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>' +
       '<div class="grid">' + cells + '</div>' +
       (hols.length ? '<ul class="hols">' + hols.map(function (x) {
-        return x.hs.map(function (hh) { return '<li><b>' + dm(x.s) + '</b>' + esc(hh.name) + (hh.type === 'am' ? ' <span class="am">' + x.L.day + '/' + x.L.month + ' âm</span>' : '') + '</li>'; }).join('');
+        return x.hs.map(function (hh) { return '<li class="hol-' + hh.type + '"><b>' + dm(x.s) + '</b><span>🎉 ' + esc(hh.name) + (hh.type === 'am' ? ' <span class="am">(' + x.L.day + '/' + x.L.month + ' âm)</span>' : '') + '</span></li>'; }).join('');
       }).join('') + '</ul>' : '') + '</section>';
   }
 
@@ -724,11 +758,14 @@
   function renderMoney() {
     var s = state.moneyDate; needYear(s.slice(0, 4));
     var S = sumRange(s, s), es = entriesOf(s), occ = C.occList(state.shows, s, s), L = C.toLunar(s);
-    var h = '<section class="datebar glass"><button class="icon-btn" data-act="money-prev" aria-label="Ngày trước">' + icon('chevL') + '</button>' +
-      '<label class="mid"><div class="dtitle">' + C.weekday(s) + ', ' + dmy(s) + '</div><div class="dsub">Âm lịch ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + ' · chạm để đổi ngày</div>' +
+    var h = '<section class="datebar glass">' +
+      '<label class="mid"><div class="dtitle">' + C.weekday(s) + ', ' + dmy(s) + '</div><div class="dsub">Âm lịch ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + ' · chạm để chọn ngày khác</div>' +
       '<input type="date" id="money-date" value="' + s + '" aria-label="Chọn ngày"></label>' +
-      '<button class="icon-btn" data-act="money-next" aria-label="Ngày sau">' + icon('chevR') + '</button></section>';
-    if (s !== todayISO()) h += '<div class="row-btns" style="justify-content:center"><button class="btn btn-sm" data-act="money-today">Về hôm nay</button></div>';
+      '<span class="pick-ic">' + icon('cal') + '</span></section>';
+    var isToday = s === todayISO();
+    h += '<div class="day-nav"><button class="btn day-btn today-btn' + (isToday ? ' is-today' : '') + '" data-act="money-today">' + (isToday ? '✓ Đang xem ngày hôm nay' : '📅 Chọn về ngày hôm nay') + '</button>' +
+      '<button class="btn day-btn" data-act="money-prev">' + icon('chevL') + ' Ngày hôm trước</button>' +
+      '<button class="btn day-btn" data-act="money-next">Ngày hôm sau ' + icon('chevR') + '</button></div>';
     h += '<div class="wide-2"><section class="sum glass"><div class="hint">Ngày đang xem · còn lại (thu − chi)</div><div class="big ' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</div>' +
       '<div class="line"><span>Tiền làm tiệm tóc</span><b>' + fmt(S.lam) + '</b></div>' +
       '<div class="line sub"><span>Hớt tóc</span><span>' + fmt(S.hottoc) + '</span></div>' +
@@ -900,8 +937,39 @@
       '<li><b>Máy tính:</b> mở bằng Chrome/Edge → bấm biểu tượng <b>Cài đặt ứng dụng</b> ở cuối thanh địa chỉ.</li></ol></section>';
 
     h += '<section class="card glass"><h2>🔑 Tài khoản</h2><p class="hint" style="margin-top:0">Muốn đổi mật khẩu: vào Vercel → dự án kim1994 → Settings → Environment Variables → sửa <b>APP_PASSWORD</b> → Redeploy (xem Bước 9 trong HUONG-DAN.md). Nếu dùng Render thì đổi cả bên Render.</p>' +
-      '<button class="btn danger" data-act="logout">' + icon('out') + ' Khóa app</button></section>';
+      '<button class="btn danger" data-act="lock-now">' + icon('lock') + ' Khóa app</button></section>';
+    h += '<section class="card glass"><div class="sec-h"><h2>🔌 Kiểm tra kết nối dữ liệu</h2><button class="btn btn-sm btn-primary" data-act="check-conn">Kiểm tra lại</button></div><div id="conn-out">' + connHTML() + '</div></section>';
     $('#view-settings').innerHTML = h;
+    if (!state.conn || Date.now() - state.conn.at > 60000) checkConn();
+  }
+  function connHTML() {
+    var c = state.conn;
+    if (!c) return '<p class="hint">Đang kiểm tra…</p>';
+    var rows = (c.checks || []).map(function (x) {
+      return '<div class="conn-row ' + (x.ok ? 'ok' : 'bad') + '"><span class="conn-ic">' + (x.ok ? '✅' : '❌') + '</span><div><b>' + esc(x.name) + '</b><br><small>' + esc(x.detail) + '</small>' +
+        (x.fix ? '<div class="conn-fix">👉 Cách sửa: ' + esc(x.fix) + '</div>' : '') + '</div></div>';
+    }).join('');
+    var head = c.ok
+      ? '<div class="conn-sum ok">✅ Kết nối dữ liệu tốt — đang chạy trên ' + esc(c.host || '') + (c.ms != null ? ' (' + c.ms + ' ms)' : '') + '</div>'
+      : '<div class="conn-sum bad">❌ ' + esc(c.title || 'Có lỗi kết nối, xem dòng có dấu ❌ bên dưới') + '</div>';
+    var when = new Date(c.at), hm = pad(when.getHours()) + ':' + pad(when.getMinutes());
+    return head + rows + '<p class="hint">Kiểm tra lúc ' + hm + '</p>';
+  }
+  function checkConn(btn) {
+    var out = function () { var el = $('#conn-out'); if (el) el.innerHTML = connHTML(); };
+    if (btn) busy(btn, true, 'Đang kiểm tra…');
+    var mk = function (title, name, detail, fix) { return { ok: false, at: Date.now(), title: title, checks: [{ name: name, ok: false, detail: detail, fix: fix }] }; };
+    if (!navigator.onLine) { state.conn = mk('Máy đang mất mạng', 'Mạng Internet', 'Điện thoại / máy tính chưa có Wi-Fi hoặc 4G', 'Bật Wi-Fi hoặc dữ liệu di động rồi bấm Kiểm tra lại'); out(); if (btn) busy(btn, false); return; }
+    fetch('/api/status', { headers: { Authorization: 'Bearer ' + state.token } }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.status === 401) state.conn = mk('Phiên đăng nhập hết hạn', 'Đăng nhập', 'Cần nhập lại mật khẩu', 'Bấm nút Khóa app rồi nhập lại mật khẩu');
+        else if (r.status === 404) state.conn = mk('Máy chủ đang chạy code cũ', 'Phiên bản code', 'Chưa có chức năng kiểm tra (lỗi 404)', 'Tải bản code mới nhất lên kho kim1994 trên GitHub (HUONG-DAN.md Bước 10)');
+        else if (!r.ok) state.conn = mk('Máy chủ báo lỗi ' + r.status, 'Máy chủ app', j.error || 'Lỗi ' + r.status, 'Xem nhật ký (Logs) trên Vercel/Render');
+        else { j.checks = j.checks || []; j.checks.unshift({ name: 'Mạng Internet', ok: true, detail: 'Đã có mạng' }); state.conn = j; }
+      });
+    }, function () {
+      state.conn = mk('Không kết nối được máy chủ app', 'Máy chủ app', 'Không gọi được máy chủ', 'Nếu dùng link Render: chờ 30–60 giây cho máy chủ thức dậy rồi bấm Kiểm tra lại. Nếu vẫn lỗi, vào Vercel/Render xem dịch vụ có đang Live không');
+    }).then(function () { out(); if (btn) busy(btn, false); });
   }
   function b64ToU8(b) {
     var p = '='.repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, '+').replace(/_/g, '/'));
@@ -1058,6 +1126,7 @@
         .catch(function (e) { toast(e.message, 'err'); }).then(function () { busy(el, false); });
     },
     'push-keys': function (el) { getKeys(el); },
+    'check-conn': function (el) { checkConn(el); },
     copy: function (el) {
       var t = el.dataset.text;
       (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Đã sao chép'); }, function () { prompt('Sao chép đoạn này:', t); });

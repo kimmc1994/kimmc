@@ -480,3 +480,94 @@ h2 { font-weight: 800; }
 .sc-l { border-top-color: rgba(214, 67, 94, .25); }
 .sc-d { font-weight: 800; }
 .tbadge { font-weight: 800; }
+
+/* ================= Bản 3 ================= */
+/* Ngày hôm nay: to, rõ, chia 2 cột Dương | Âm */
+.hero2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.h-sol, .h-lun { display: grid; justify-items: center; text-align: center; padding: 4px 8px; }
+.h-lun { border-left: 1.5px solid var(--hair); }
+.h-lbl { font-size: 14px; font-weight: 800; color: var(--text3); letter-spacing: .02em; }
+.h-big { font-size: 64px; line-height: 1; font-weight: 800; letter-spacing: -.04em; color: var(--blue); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.h-big.lunar { color: #C2410C; }
+.h-big.sun, .h-wd.sun { color: #E11D48; }
+.h-wd { font-size: 20px; font-weight: 800; }
+.h-my { font-size: 16px; font-weight: 600; color: var(--text2); }
+@media (prefers-color-scheme: dark) { .h-big.lunar { color: #FDBA74; } .h-big.sun, .h-wd.sun { color: #FB7185; } }
+.chip-hol { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; font-size: 14.5px; font-weight: 700; }
+.chip-hol.duong { background: rgba(37, 99, 235, .12); color: #1D4ED8; }
+.chip-hol.am { background: rgba(217, 119, 6, .15); color: #B45309; }
+
+/* Chủ nhật đỏ */
+.wk span:last-child { color: #E11D48; }
+.cell.sun .sol { color: #E11D48; }
+.cell.sun.past .sol { color: #E11D48; opacity: .55; }
+@media (prefers-color-scheme: dark) { .wk span:last-child, .cell.sun .sol { color: #FB7185; } }
+
+/* Màu theo năm */
+.yr-tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-weight: 800 !important; font-size: .78em; color: #fff !important; background: var(--yc, #2563EB); vertical-align: 2px; }
+.cal-tabs .yr-tag { font-size: 12px; padding: 1px 7px; vertical-align: 1px; }
+.month { border-top: 4px solid var(--yc, transparent); }
+
+/* Ngày có show: nền đỏ đậm hơn 1 chút, viền vừa phải */
+.cell.show { background: rgba(225, 29, 72, .2); box-shadow: inset 0 0 0 1.5px rgba(225, 29, 72, .55); }
+.cell.show .sol { color: #BE123C; }
+.cell.show .lun { color: #BE123C; opacity: .8; }
+.cell.show.today { box-shadow: inset 0 0 0 1.5px rgba(225, 29, 72, .55), 0 0 0 2px var(--blue); }
+@media (prefers-color-scheme: dark) { .cell.show { background: rgba(251, 113, 133, .26); box-shadow: inset 0 0 0 1.5px rgba(251, 113, 133, .6); } .cell.show .sol, .cell.show .lun { color: #FFE4E6; } }
+
+/* Rê chuột hiện thông tin sự kiện */
+.cell[data-tip] { overflow: visible; }
+@media (hover: hover) {
+  .cell[data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; z-index: 15; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 260px; white-space: pre-line; text-align: left; padding: 8px 11px; border-radius: 12px;
+    background: #1F2937; color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.4; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); pointer-events: none;
+  }
+  .grid .cell[data-tip]:nth-child(7n+1):hover::after { left: 0; transform: none; }
+  .grid .cell[data-tip]:nth-child(7n):hover::after { left: auto; right: 0; transform: none; }
+}
+
+/* Ngày lễ trong tháng có màu */
+.hols li { padding: 5px 10px; border-radius: 12px; }
+.hols li.hol-duong { background: rgba(37, 99, 235, .1); }
+.hols li.hol-duong b { color: #1D4ED8; }
+.hols li.hol-am { background: rgba(217, 119, 6, .13); }
+.hols li.hol-am b { color: #B45309; }
+.hols li span { color: var(--text); font-weight: 600; }
+.hols li .am { font-weight: 500; color: var(--text2); }
+@media (prefers-color-scheme: dark) { .hols li.hol-duong b { color: #93C5FD; } .hols li.hol-am b { color: #FCD34D; } }
+
+/* Tên show màu đỏ */
+.ss-name, .sc-body h3 { color: #BE123C; }
+@media (prefers-color-scheme: dark) { .ss-name, .sc-body h3 { color: #FDA4AF; } }
+
+/* Thu chi: nút chọn ngày */
+.day-nav { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 8px; }
+.day-btn { min-height: 50px; padding: 0 8px; white-space: normal; text-align: center; line-height: 1.2; font-size: 15px; background: var(--glass-strong); border: 1px solid var(--hair); }
+.day-btn .ic { width: 17px; height: 17px; }
+.today-btn { background: linear-gradient(135deg, #7DD3FC 0%, #A78BFA 55%, #F9A8D4 100%); color: #1E1B4B; border: 0; box-shadow: 0 4px 14px rgba(167, 139, 250, .35); }
+.today-btn.is-today { background: linear-gradient(135deg, #BBF7D0, #A7F3D0); color: #065F46; box-shadow: none; }
+@media (max-width: 380px) { .day-btn { font-size: 14px; } }
+
+/* Nhắc cập nhật số điện thoại */
+.warn { background: rgba(254, 243, 199, .9); border: 1.5px solid #F59E0B; border-radius: 22px; }
+.warn-h { font-weight: 800; font-size: 17px; color: #92400E; margin-bottom: 6px; }
+.warn-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(245, 158, 11, .35); color: #451A03; }
+.warn-row small { color: #92400E; }
+@media (prefers-color-scheme: dark) { .warn { background: rgba(120, 53, 15, .45); } .warn-h, .warn-row, .warn-row small { color: #FDE68A; } }
+
+/* Kiểm tra kết nối */
+.conn-sum { font-weight: 800; padding: 10px 12px; border-radius: 14px; margin-bottom: 8px; }
+.conn-sum.ok { background: rgba(34, 197, 94, .14); color: #15803D; }
+.conn-sum.bad { background: rgba(225, 29, 72, .13); color: #BE123C; }
+.conn-row { display: flex; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--hair); font-size: 15px; }
+.conn-row small { color: var(--text2); }
+.conn-fix { margin-top: 4px; font-size: 14px; color: #B45309; font-weight: 600; }
+@media (prefers-color-scheme: dark) { .conn-sum.ok { color: #86EFAC; } .conn-sum.bad { color: #FDA4AF; } .conn-fix { color: #FCD34D; } }
+.cal-tabs button { display: grid; justify-items: center; gap: 2px; line-height: 1.15; padding: 6px 2px; min-height: 52px; }
+.cal-tabs .yr-tag { vertical-align: 0; }
+.day-nav { grid-template-columns: 1fr 1fr; }
+.day-nav .today-btn { grid-column: 1 / -1; min-height: 52px; font-size: 16.5px; }
+.day-btn { font-size: 16px; white-space: nowrap; }
+.datebar { padding: 12px 14px; }
+.pick-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); pointer-events: none; }
