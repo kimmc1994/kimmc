@@ -13,5 +13,6 @@ Biến môi trường trên Vercel:
 | `GITHUB_REPO` | ✅ | `tên-tài-khoản/kim1994-data` |
 | `APP_PASSWORD` | | Mật khẩu đăng nhập (mặc định `08051994@`) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | | Thông báo khi đóng app (lấy trong app: Cài đặt → Lấy mã cài đặt) |
+| `MORNING_HOUR` | | Giờ gửi bản tin buổi sáng, giờ Việt Nam (mặc định `7`) |
 | `GITHUB_BRANCH` | | Nhánh của kho dữ liệu (mặc định `main`) |
 | `SECRET_KEY` | | Chuỗi bí mật riêng để ký phiên đăng nhập (không bắt buộc) |

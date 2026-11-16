@@ -158,7 +158,7 @@ Làm sau khi Bước 4 đã chạy được. Render dùng **chính kho code kim1
 
 ---
 
-## Bước 8 — Thông báo nhắc show (trước 3 ngày, 1 ngày, 1 tiếng)
+## Bước 8 — Thông báo nhắc show + số trên icon app
 
 App có **3 cách nhắc**, từ dễ đến đầy đủ:
 
@@ -181,7 +181,20 @@ Trên mỗi thẻ show bấm **Thêm vào lịch nhắc** → điện thoại m�
    - **URL**: dán **Link hẹn giờ (cron)** lấy ở mục 1 (dạng `https://kim1994.vercel.app/api/cron?key=…`)
    - **Execution schedule**: chọn **Every 15 minutes**
    - Bấm **Create**.
-5. Quay lại app → **Cài đặt** → **Bật thông báo** → **Cho phép** → bấm **Gửi thử**. Có thông báo hiện lên là xong ✅.
+5. Trên **mỗi** iPhone/iPad muốn nhận:
+   - Mở app **bằng icon trên Màn hình chính** (không mở bằng Safari).
+   - Ở đầu trang chủ có khung xanh **"Máy này CHƯA BẬT thông báo"** → bấm nút **"Bật số thông báo trên icon"** → chọn **Cho phép**.
+   - Dòng trạng thái chuyển thành **"🔔 Máy này ĐANG BẬT thông báo"** là xong ✅.
+   - Vào **Cài đặt** trong app → bấm **Gửi thử** để kiểm tra: phải có thông báo hiện lên và số hiện trên icon app.
+   - Nếu lỡ bấm **Không cho phép**: vào **Cài đặt** của iPhone → **Thông báo** → chọn **Quản Lý $ Của Kim** → bật **Cho phép thông báo** và **Kí hiệu** → mở lại app.
+
+**Số trên icon app hoạt động thế nào:**
+- Số = **sự kiện của ngày hôm đó**: show hôm nay + show chờ xác nhận hoàn thành (giống số trên chuông trong app).
+- Ngày có sự kiện: **khoảng 7 giờ sáng** app gửi 1 thông báo nhắc lên màn hình khóa và hiện số trên icon. Các tin nhắc trước show 3 ngày / 1 ngày / 1 tiếng cũng kèm số.
+- Ngày không có sự kiện: **không gửi gì**.
+- Lưu ý của iPhone: số chỉ đổi khi **mở app** hoặc khi **có thông báo tới**. Nên nếu hôm trước còn số mà hôm nay hết sự kiện, số cũ vẫn nằm trên icon cho tới khi bạn mở app (mở là số tự mất).
+- iPhone/iPad cần **iOS 16.4 trở lên**. Thông báo khi đóng app cần đã làm mục 4 (cron-job.org mỗi 15 phút).
+- Muốn đổi giờ gửi buổi sáng (VD 6 giờ): thêm biến `MORNING_HOUR` = `6` ở Vercel (và Render nếu dùng) → Redeploy.
    Làm mục 5 trên **mỗi máy** muốn nhận (iPhone, iPad…).
 
 ---

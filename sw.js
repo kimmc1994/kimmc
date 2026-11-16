@@ -1,5 +1,5 @@
 // Service worker: chạy offline + nhận thông báo đẩy + số trên icon app
-const CACHE = 'kim1994-v5';
+const CACHE = 'kim1994-v6';
 const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/lib/lunar.js', '/lib/core.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -26,7 +26,10 @@ self.addEventListener('push', e => {
   const jobs = [self.registration.showNotification(d.title || 'Quản Lý $ Của Kim', {
     body: d.body || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: d.tag || 'kim', data: { url: '/' }
   })];
-  if (typeof d.badge === 'number' && self.navigator && self.navigator.setAppBadge) jobs.push(self.navigator.setAppBadge(d.badge).catch(() => {}));
+  // Cập nhật số trên icon app (iPhone/iPad iOS 16.4+ khi mở bằng icon trên Màn hình chính, Android, máy tính)
+  if (typeof d.badge === 'number' && self.navigator && self.navigator.setAppBadge) {
+    jobs.push((d.badge > 0 ? self.navigator.setAppBadge(d.badge) : self.navigator.clearAppBadge()).catch(() => {}));
+  }
   e.waitUntil(Promise.all(jobs));
 });
 self.addEventListener('notificationclick', e => {

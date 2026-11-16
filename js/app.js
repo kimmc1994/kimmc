@@ -234,8 +234,15 @@
       return true;
     });
   }
+  // Số trên icon + chuông = sự kiện của ngày hôm đó: show hôm nay (chưa xác nhận) + show chờ xác nhận hoàn thành
+  function badgeCount() {
+    var t = todayISO(), pend = pendingShows(), seen = {};
+    pend.forEach(function (o) { seen[o.show.id + o.iso] = 1; });
+    var today = C.activeOcc(state.shows, t, t).filter(function (o) { return !C.money(o.show, o.iso).status && !seen[o.show.id + o.iso]; });
+    return today.length + pend.length;
+  }
   function updateBadge() {
-    var n = alerts().length + pendingShows().length;
+    var n = badgeCount();
     if (navigator.setAppBadge) { (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(function () { }); }
   }
   // Khi app đang mở mà chưa bật thông báo máy chủ: nhắc ngay trên máy
@@ -280,7 +287,7 @@
   }
   function renderHeader() {
     var a = alerts();
-    var nb = a.length + pendingShows().length;
+    var nb = badgeCount();
     $('#hdr-right').innerHTML = '<button class="icon-btn" data-act="bell" aria-label="Thông báo show">' + icon('bell') + (nb ? '<span class="badge">' + nb + '</span>' : '') + '</button>' +
       '<button class="icon-btn" data-act="lock-now" aria-label="Khóa app">' + icon('lock') + '</button>';
   }
@@ -398,7 +405,7 @@
       '<div class="h-lun"><div class="h-lbl">Âm lịch</div><div class="h-big lunar">' + L.day + '</div><div class="h-wd">Tháng ' + L.month + (L.leap ? ' nhuận' : '') + '</div><div class="h-my">Năm ' + C.canChi(L.year) + '</div></div></div>' +
       '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
       hs.map(function (x) { return '<span class="chip-hol ' + x.type + '">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
-    h += confirmBlock() + phoneAlert();
+    h += notifyBlock() + confirmBlock() + phoneAlert();
     h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
     h += calendarBlock();
     $('#view-home').innerHTML = h;
@@ -406,6 +413,42 @@
 
   var YEAR_COLORS = ['#16A34A', '#2563EB', '#E11D48', '#D97706', '#7C3AED'];
   function yearColor(y) { return YEAR_COLORS[((y - 2026) % 5 + 5) % 5]; }
+
+  /* ---------- Bật số thông báo trên icon ---------- */
+  function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+  // 'on' = bật đầy đủ (nhắc + số trên icon cả khi đóng app) | 'local' = chỉ khi đang mở app | 'off' | 'blocked' | 'need-icon' | 'unsupported'
+  function notifyState() {
+    if (isIOS() && !isStandalone()) return 'need-icon';
+    if (!('Notification' in window) || !navigator.serviceWorker) return 'unsupported';
+    if (Notification.permission === 'denied') return 'blocked';
+    if (Notification.permission !== 'granted') return 'off';
+    if (localStorage.getItem('kim_push') === '1') return 'on';
+    return state.vapidPublic ? 'off' : 'local';
+  }
+  function notifyBlock() {
+    var st = notifyState();
+    if (st === 'on') return '<div class="nt-ok">🔔 Máy này <b>ĐANG BẬT</b> thông báo</div>';
+    var body, btn = '';
+    if (st === 'need-icon') body = 'Bạn đang mở bằng <b>Safari</b>. Muốn có số trên icon và thông báo: bấm nút <b>Chia sẻ</b> → <b>Thêm vào MH chính</b>, rồi <b>mở app bằng icon</b> vừa thêm.';
+    else if (st === 'unsupported') body = 'Trình duyệt này chưa hỗ trợ thông báo. Trên iPhone/iPad cần iOS 16.4 trở lên và mở app bằng icon.';
+    else if (st === 'blocked') body = 'Thông báo đang bị <b>chặn</b>. Vào <b>Cài đặt</b> của điện thoại → <b>Thông báo</b> → chọn <b>Quản Lý $ Của Kim</b> → bật <b>Cho phép thông báo</b> và <b>Kí hiệu</b>, rồi mở lại app.';
+    else if (st === 'local') body = 'Đã cho phép thông báo, nhưng máy chủ <b>chưa cài khóa thông báo</b> nên chỉ nhắc khi đang mở app. Làm Bước 8 trong HUONG-DAN.md để có số trên icon mỗi sáng.';
+    else { body = 'Bấm nút dưới → chọn <b>Cho phép</b>. Ngày nào có sự kiện (show hôm nay, show chờ xác nhận) app hiện <b>số trên icon</b> và gửi thông báo nhắc. Không có sự kiện thì không thông báo.'; btn = '<button class="btn btn-primary nt-btn" data-act="push-on">' + icon('bell') + ' Bật số thông báo trên icon</button>'; }
+    return '<section class="card nt-box"><div class="nt-status">🔕 Máy này <b>CHƯA BẬT</b> thông báo</div><p class="nt-body">' + body + '</p>' + btn + '</section>';
+  }
+  // Kiểm tra lại đăng ký trên máy (lỡ bị iOS xóa) để dòng trạng thái luôn đúng
+  function syncPushFlag() {
+    if (!navigator.serviceWorker || !('PushManager' in window)) return;
+    navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+      var had = localStorage.getItem('kim_push') === '1';
+      if (sub && Notification.permission === 'granted') {
+        if (!had) localStorage.setItem('kim_push', '1');
+        if (logged()) api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON() }) }).catch(function () { });
+      } else if (had) localStorage.removeItem('kim_push');
+      if (had !== (localStorage.getItem('kim_push') === '1') && state.view === 'home') renderHome();
+    }).catch(function () { });
+  }
 
   /* ---------- Xác nhận show hoàn thành ---------- */
   function confirmBlock() {
@@ -1030,7 +1073,7 @@
       (st && st.files && st.files.length ? '<details><summary>Xem từng file</summary>' + st.files.map(function (f) { return '<div class="line"><span>' + esc(f.name) + '</span><b>' + fmtBytes(f.size) + '</b></div>'; }).join('') + '</details>' : '') + '</section>';
 
     h += '<section class="card glass"><h2>🔔 Thông báo nhắc show</h2>' +
-      '<p class="hint" style="margin-top:0">Nhắc trước 3 ngày, trước 1 ngày và trước giờ show 1 tiếng. Số show sắp tới hiện trên chuông và trên icon app.</p>' +
+      '<p class="hint" style="margin-top:0">Nhắc trước 3 ngày, trước 1 ngày và trước giờ show 1 tiếng. Ngày nào có sự kiện thì <b>khoảng 7 giờ sáng</b> gửi 1 tin nhắc và hiện <b>số trên icon app</b> (= show hôm nay + show chờ xác nhận). Không có sự kiện thì không gửi.</p>' +
       (!standalone ? '<p class="preview">Trên iPhone/iPad: phải <b>thêm app vào Màn hình chính</b> rồi mở bằng icon thì mới bật được thông báo (xem hướng dẫn bên dưới).</p>' : '') +
       '<div class="line"><span>Quyền thông báo trên máy này</span><b>' + (perm === 'granted' ? '✅ Đã cho phép' : perm === 'denied' ? '⛔ Đã chặn' : perm === 'unsupported' ? 'Chưa hỗ trợ' : 'Chưa bật') + '</b></div>' +
       '<div class="line"><span>Nhắc cả khi đóng app</span><b>' + (pushOn ? '✅ Đang bật' : 'Chưa bật') + '</b></div>' +
@@ -1106,7 +1149,7 @@
       }).then(function (sub) {
         return api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON() }) });
       }).then(function () {
-        localStorage.setItem('kim_push', '1'); toast('Đã bật thông báo, kể cả khi đóng app'); render();
+        localStorage.setItem('kim_push', '1'); updateBadge(); toast('Máy này ĐANG BẬT thông báo. Ngày có sự kiện sẽ hiện số trên icon và nhắc bạn.'); render();
       }).catch(function (e) { toast('Chưa bật được: ' + e.message, 'err'); busy(btn, false); });
     });
   }
@@ -1159,7 +1202,7 @@
         state.fresh = {}; state.view = 'home';
         $('#lock').innerHTML = '';
         render();
-        return ensureYear(new Date().getFullYear()).then(render);
+        return ensureYear(new Date().getFullYear()).then(function () { render(); syncPushFlag(); });
       })
       .catch(function (e) {
         if (btn) { btn.disabled = false; btn.textContent = 'Mở khóa'; }
@@ -1316,4 +1359,5 @@
   if (logged()) ensureYear(new Date().getFullYear()).then(render, function (e) { toast(e.message, 'err'); });
   setInterval(function () { if (logged()) { renderHeader(); updateBadge(); localNotify(); } }, 60000);
   setTimeout(localNotify, 3000);
+  setTimeout(function () { if (logged()) syncPushFlag(); }, 2500);
 })();

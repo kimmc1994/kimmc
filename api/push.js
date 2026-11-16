@@ -26,7 +26,9 @@ module.exports = async (req, res) => {
       const { data } = await gh.getFile('config.json');
       const subs = (data && data.pushSubs) || [];
       if (!subs.length) return res.status(400).json({ error: 'Chưa có thiết bị nào bật thông báo' });
-      const r = await push.sendAll(host, subs, { title: '🔔 Thử thông báo', body: 'Quản Lý $ Của Kim đã gửi thông báo thành công!', tag: 'test' });
+      const { counts, vnToday } = require('./cron');
+      const badge = counts(data.shows || [], Date.now(), vnToday(Date.now()).iso).badge;
+      const r = await push.sendAll(host, subs, { title: '🔔 Thử thông báo', body: 'Thông báo đã chạy! Số trên icon app hiện là ' + badge + '.', tag: 'test', badge });
       if (r.dead.length) await gh.updateFile('config.json', DEF_CFG, c => { c.pushSubs = (c.pushSubs || []).filter(x => !r.dead.includes(x.endpoint)); }, 'Bỏ thiết bị hết hạn');
       return res.json({ ok: true, sent: r.sent, total: subs.length });
     }
