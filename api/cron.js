@@ -45,9 +45,14 @@ function line(o) {
 }
 
 module.exports = async (req, res) => {
-  if (!safeEqual(String(req.query.key || ''), cronKey())) return res.status(403).json({ error: 'Sai key' });
+  // Ai được gọi: Vercel Cron (tự chạy mỗi sáng, cài sẵn trong vercel.json) hoặc link có key (cron-job.org, không bắt buộc)
+  const ua = String(req.headers['user-agent'] || '');
+  const auth = String(req.headers.authorization || '');
+  const okKey = safeEqual(String((req.query || {}).key || ''), cronKey());
+  const okVercel = /vercel-cron/i.test(ua) && (!process.env.CRON_SECRET || auth === 'Bearer ' + process.env.CRON_SECRET);
+  if (!okKey && !okVercel) return res.status(403).json({ error: 'Sai key' });
   if (!gh.configured()) return res.status(500).json({ error: 'Chưa cài GITHUB_TOKEN / GITHUB_REPO' });
-  if (!push.ready()) return res.json({ ok: true, note: 'Chưa cài khóa VAPID nên chưa gửi' });
+  if (!(await push.ready())) return res.json({ ok: true, note: 'Chưa tạo được khóa thông báo' });
   try {
     const host = req.headers['x-forwarded-host'] || req.headers.host;
     const now = Date.now();
@@ -102,6 +107,7 @@ module.exports = async (req, res) => {
     await gh.updateFile('config.json', DEF, c => {
       c.sent = c.sent || {};
       for (const k of newKeys) c.sent[k] = now;
+      if (total) c.lastPushAt = now;
       const cut = Core.addDays(today, -10);
       for (const k of Object.keys(c.sent)) { const d = k.split('|')[1]; if (!d || d < cut) delete c.sent[k]; }
       if (dead.size) c.pushSubs = (c.pushSubs || []).filter(s => !dead.has(s.endpoint));

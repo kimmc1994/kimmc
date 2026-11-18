@@ -117,7 +117,7 @@ Làm sau khi Bước 4 đã chạy được. Render dùng **chính kho code kim1
 | `GITHUB_REPO` | `tên-tài-khoản/kim1994-data` |
 | `APP_PASSWORD` | `08051994@` (phải **giống hệt** bên Vercel) |
 
-   Nếu sau này làm Bước 8 (thông báo), thêm cả `VAPID_PUBLIC_KEY` và `VAPID_PRIVATE_KEY` **giống hệt** bên Vercel.
+   Không cần thêm khóa thông báo: app tự tạo và dùng chung cho Vercel lẫn Render. (Chỉ khi trước đây bạn đã tự thêm `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` vào Vercel thì thêm 2 biến đó **giống hệt** vào Render.)
 7. Bấm nút **Deploy Web Service** ở cuối trang.
 8. Chờ 2–4 phút. Khung nhật ký (Logs) hiện dòng **"Quản Lý $ Của Kim đang chạy ở cổng …"** và chữ **Live** màu xanh là xong.
 9. Bấm vào link **…onrender.com** ở góc trên trái → nhập mật khẩu → phải thấy đúng dữ liệu đã nhập bên Vercel. ✅
@@ -132,8 +132,8 @@ Làm sau khi Bước 4 đã chạy được. Render dùng **chính kho code kim1
 
 ## Bước 6 — Thử app
 
-1. Mở **https://kim1994.vercel.app** → gõ mật khẩu `08051994@` → bấm **Mở khóa**.
-2. Màn hình khóa hiện ra ngay khi mở app. Vào tab **Thu chi** → bấm **Hớt tóc** → nhập `50000` → **Lưu**.
+1. Mở **https://kim1994.vercel.app** → bấm **Đăng nhập** → gõ mật khẩu `08051994@` → bấm **Đăng nhập**.
+2. Ở trang chủ bấm nút đỏ **Thêm Thu Chi** → chọn **Tiền tiệm tóc** → nhập `50000` → **Lưu**.
 3. Mở lại kho **kim1994-data** trên GitHub → phải thấy thư mục **data** có file `config.json` và `thuchi-2026.json`. ✅ Lưu dữ liệu đã chạy.
 
 **Nếu báo lỗi đỏ khi lưu:**
@@ -160,42 +160,24 @@ Làm sau khi Bước 4 đã chạy được. Render dùng **chính kho code kim1
 
 ## Bước 8 — Thông báo nhắc show + số trên icon app
 
-App có **3 cách nhắc**, từ dễ đến đầy đủ:
+**Không cần cài gì thêm.** Khóa thông báo được app **tự tạo** và cất trong kho dữ liệu riêng tư. Vercel **tự gọi** mỗi sáng (đã cài sẵn trong file `vercel.json`). Bạn **không cần** lấy mã, không cần dán khóa, không cần cron-job.org.
 
-**Cách A — Thêm vào lịch nhắc (dễ nhất, chắc chắn nhất).**
-Trên mỗi thẻ show bấm **Thêm vào lịch nhắc** → điện thoại mở Lịch → bấm **Thêm tất cả**. Lịch của máy sẽ tự nhắc trước 3 ngày, trước 1 ngày, trước 1 tiếng, kể cả khi tắt app.
-
-**Cách B — Chuông trong app.** Chuông góc trên và icon app hiện số show trong 3 ngày tới. Vào **Cài đặt** → **Bật thông báo** → **Cho phép**: khi đang mở app sẽ được nhắc.
-(iPhone/iPad: phải mở app từ icon ở Màn hình chính, iOS 16.4 trở lên.)
-
-**Cách C — Nhắc cả khi đóng app (làm thêm 1 lần, khoảng 10 phút):**
-1. Mở app **từ icon** → tab **Cài đặt** → mục 🔔 → bấm **Cài đặt nhắc khi đóng app** → bấm **Lấy mã cài đặt**.
-2. App hiện 3 dòng. Vào **Vercel** → dự án **kim1994** → tab **Settings** → **Environment Variables**, thêm 2 dòng (bấm **Sao chép** trong app rồi dán):
-   - Key `VAPID_PUBLIC_KEY` → Value: dòng VAPID_PUBLIC_KEY
-   - Key `VAPID_PRIVATE_KEY` → Value: dòng VAPID_PRIVATE_KEY
-   → bấm **Save**.
-   ⚠️ Dùng **2 khóa của cùng 1 lần bấm**. Bấm “Lấy mã” lần nữa sẽ ra cặp mới.
-3. Làm **Redeploy** (xem Bước 9, mục 3). Nếu dùng Render, thêm 2 khóa này vào Render nữa (Bước 5 mục 6).
-4. Vào **https://cron-job.org** → **Sign up** (miễn phí) → đăng nhập → bấm **Create cronjob**:
-   - **Title**: `Nhac show Kim`
-   - **URL**: dán **Link hẹn giờ (cron)** lấy ở mục 1 (dạng `https://kim1994.vercel.app/api/cron?key=…`)
-   - **Execution schedule**: chọn **Every 15 minutes**
-   - Bấm **Create**.
-5. Trên **mỗi** iPhone/iPad muốn nhận:
-   - Mở app **bằng icon trên Màn hình chính** (không mở bằng Safari).
-   - Ở đầu trang chủ có khung xanh **"Máy này CHƯA BẬT thông báo"** → bấm nút **"Bật số thông báo trên icon"** → chọn **Cho phép**.
-   - Dòng trạng thái chuyển thành **"🔔 Máy này ĐANG BẬT thông báo"** là xong ✅.
-   - Vào **Cài đặt** trong app → bấm **Gửi thử** để kiểm tra: phải có thông báo hiện lên và số hiện trên icon app.
-   - Nếu lỡ bấm **Không cho phép**: vào **Cài đặt** của iPhone → **Thông báo** → chọn **Quản Lý $ Của Kim** → bật **Cho phép thông báo** và **Kí hiệu** → mở lại app.
+Trên **mỗi** iPhone/iPad muốn nhận thông báo:
+1. Mở app **bằng icon trên Màn hình chính** (không mở bằng Safari).
+2. Vào tab **Cài đặt** → khung **🔔 Thông báo trên điện thoại** → bấm **Bật thông báo trên máy này** → chọn **Cho phép**. (Hoặc bấm nút **Bật số thông báo trên icon** ở đầu trang chủ.)
+3. Dòng trạng thái chuyển thành **"✅ Máy này ĐANG BẬT thông báo"**.
+4. Bấm **Gửi thử thông báo**: sau vài giây phải có thông báo hiện lên và số hiện trên icon app ✅.
+5. Muốn tắt trên máy đó: bấm **Tắt trên máy này**.
+6. Nếu lỡ bấm **Không cho phép**: vào **Cài đặt** của iPhone → **Thông báo** → **Quản Lý $ Của Kim** → bật **Cho phép thông báo** và **Kí hiệu** → mở lại app.
 
 **Số trên icon app hoạt động thế nào:**
-- Số = **sự kiện của ngày hôm đó**: show hôm nay + show chờ xác nhận hoàn thành (giống số trên chuông trong app).
-- Ngày có sự kiện: **khoảng 7 giờ sáng** app gửi 1 thông báo nhắc lên màn hình khóa và hiện số trên icon. Các tin nhắc trước show 3 ngày / 1 ngày / 1 tiếng cũng kèm số.
-- Ngày không có sự kiện: **không gửi gì**.
-- Lưu ý của iPhone: số chỉ đổi khi **mở app** hoặc khi **có thông báo tới**. Nên nếu hôm trước còn số mà hôm nay hết sự kiện, số cũ vẫn nằm trên icon cho tới khi bạn mở app (mở là số tự mất).
-- iPhone/iPad cần **iOS 16.4 trở lên**. Thông báo khi đóng app cần đã làm mục 4 (cron-job.org mỗi 15 phút).
-- Muốn đổi giờ gửi buổi sáng (VD 6 giờ): thêm biến `MORNING_HOUR` = `6` ở Vercel (và Render nếu dùng) → Redeploy.
-   Làm mục 5 trên **mỗi máy** muốn nhận (iPhone, iPad…).
+- Số = **sự kiện của ngày hôm đó**: show hôm nay + show chờ xác nhận hoàn thành (bằng đúng số ở chuông trong app).
+- Mỗi sáng khoảng **7:00 – 8:00**, ngày nào có sự kiện thì máy chủ gửi **1 thông báo** (hiện cả trên màn hình khóa) và đặt số trên icon. Không có sự kiện thì không gửi.
+- Show sắp tới còn được nhắc trước 3 ngày và trước 1 ngày (trong bản tin buổi sáng).
+- Lưu ý của iPhone: số chỉ đổi khi **mở app** hoặc khi **có thông báo tới**. Hôm trước còn số mà hôm nay hết sự kiện thì số cũ vẫn nằm đó cho tới khi bạn mở app.
+- iPhone/iPad cần **iOS 16.4 trở lên**.
+
+**Nhắc trước 1 tiếng:** trên mỗi thẻ show bấm **"Thêm vào lịch nhắc"** → Lịch của điện thoại tự mở → bấm **Thêm tất cả**. Lịch sẽ tự nhắc trước 3 ngày, 1 ngày và 1 tiếng, kể cả khi tắt app. Chỉ cần 1 nút, không cài đặt gì.
 
 ---
 
@@ -216,16 +198,20 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 
 ## Cách dùng nhanh
 
-- **Mở app là hỏi mật khẩu ngay.** Chưa nhập đúng thì không thấy gì cả. Tắt hẳn app, hoặc để app chạy nền quá 5 phút, thì lần sau phải nhập lại. Nút **🔒** góc phải trên để khóa ngay.
+- **Đăng nhập:** máy nào đăng nhập 1 lần rồi thì **mở app là xem được ngay**, không cần mật khẩu. Khi bấm **Thêm show**, **Thêm Thu Chi**, sửa hoặc xóa, app mới hỏi mật khẩu. Mỗi lần đăng nhập được **sửa trong 20 phút**; góc phải trên hiện **"🔓 Sửa · còn 18'"**, bấm vào đó để thoát chế độ sửa sớm. Hết 20 phút, nút đổi thành **🔒 Đăng nhập**.
 - **Trang chủ** (từ trên xuống):
   1. Hôm nay: ngày dương, ngày âm, hôm nay có show không, ngày lễ.
   2. **Lịch show**: các show sắp tới, nhóm theo ngày (Hôm nay / Ngày mai / Ngày kia…), có giờ và buổi (sáng, chiều, tối) tô màu khác nhau. Chạm 1 show để xem đầy đủ, gọi, mở bản đồ.
-  3. **Thu chi**: 3 ô **Hôm nay / Tuần này / Tháng này** cho thấy ngay số tiền còn lại. Chạm 1 ô để xem chi tiết: tiền làm (hớt tóc + massage), bo tiệm tóc, thu show (nhận + bo), thu khác, tổng thu, tổng chi, còn lại.
+  3. **Thu chi**: 3 ô **Hôm nay / Tuần này / Tháng này** cho thấy ngay số tiền còn lại. Chạm 1 ô để xem chi tiết: tiền tiệm tóc, bo tiệm tóc, thu show (nhận + bo), thu khác, tổng thu, tổng chi, còn lại.
   4. **Lịch âm dương** 3 tháng (VD tháng 11 → 11, 12, 1). Điện thoại xem từng tháng bằng 3 nút tháng; máy tính hiện cả 3. Số to là ngày dương, số nhỏ là ngày âm. **Chỉ ngày có show mới tô màu hồng**, chấm nhỏ màu cho biết show sáng (cam), chiều (xanh), tối (tím). Thu chi không tô màu lên lịch. Ngày lễ chỉ có chấm xám nhỏ, tên lễ ghi dưới mỗi tháng.
 - **Thêm show**: mặc định ngày âm, không lặp lại. Chọn năm âm thì danh sách tháng **tự có tháng nhuận** nếu năm đó có (VD năm 2028 có "5 nhuận"), số ngày trong tháng cũng tự đúng 29 hoặc 30. Không cần tích gì.
-- **Thu chi**: chọn ngày → bấm ô Hớt tóc / Massage / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. ✏️ để sửa, 🗑️ để xóa. Cuối trang cũng có thống kê hôm nay / tuần / tháng.
-- **Báo cáo**: theo tháng hoặc năm, tách riêng tiền làm và tiền bo, có tiết kiệm được bao nhiêu.
-- **Cài đặt**: thanh dung lượng, xóa dữ liệu theo năm, tải file sao lưu, bật thông báo.
+- **Thêm show**: thứ tự ô nhập là Tên show → Chủ tiệc → SĐT liên hệ (chủ tiệc) → Bầu show → **Địa Điểm** → Link Google Map → Ngày → Giờ…
+- **Bầu show** (tab Show → nút cam **Bầu show**): mỗi bầu show có **Tên CTy, Tên Dịch Vụ** và nhiều người liên hệ. Bấm **Thêm SĐT** để thêm người (Tên người liên hệ + SĐT). Thẻ show hiện đủ tên và nút Gọi / Zalo cho từng người.
+- **Trang chủ, lịch show**: tên show màu xanh lá, **địa điểm chữ đỏ đậm** ngay bên dưới. Không hiện tên bầu show (bấm vào show mới thấy).
+- **Thu chi**: bấm nút đỏ **Thêm Thu Chi**, hoặc chọn ngày → bấm ô **Tiền tiệm tóc** / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. (Hớt tóc và massage đã gộp thành **Tiền tiệm tóc**; số cũ vẫn được cộng vào đây.) ✏️ để sửa, 🗑️ để xóa. Cuối trang cũng có thống kê hôm nay / tuần / tháng.
+- **Báo cáo**: nút xanh **Theo tháng**, nút tím **Theo năm**. Có **doanh thu tiệm tóc**, tiền bo tiệm tóc riêng, thu show, thu khác, chi và tiết kiệm được bao nhiêu.
+- **Cài đặt**: thanh dung lượng, thông báo, xóa dữ liệu theo năm, tải file sao lưu.
+- **Xóa dữ liệu theo năm**: năm đã qua thì gõ lại số năm để xác nhận. **Năm hiện tại phải nhập lại mật khẩu** mới xóa được.
 - **Xác nhận show hoàn thành**: khi show đã qua giờ diễn, app **không nhắc nữa** mà hiện khung xanh **"Xác nhận show hoàn thành"** ở đầu trang chủ (chuông cũng đếm số show chờ xác nhận).
   - Bấm **✅ Đã hoàn thành show** → kiểm tra/sửa **Tiền nhận show**, **Tiền bo show**, **Tiền khác của show** (kèm nội dung) → bấm **✅ Đã hoàn thành show**. Lúc này tiền mới được cộng vào thu chi và show biến khỏi khung xác nhận.
   - Bấm **❌ Hủy show** → chọn nhanh lý do (Khách hủy tiệc, Đổi ngày tiệc, Trùng lịch show khác…) hoặc tự gõ vào ô **Lý do hủy show** (bắt buộc) → bấm **Xác nhận hủy show**. Show không tính tiền, bị gạch tên, bỏ khỏi lịch. Lý do hiện trên thẻ show (bấm **📝 Sửa lý do** để sửa) và trong **Báo cáo** → mục Show → **Xem lý do các show đã hủy**.
@@ -242,6 +228,7 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 ```
 data/
 ├── config.json        ← show, bầu show, thiết bị nhận thông báo
+├── push-keys.json     ← khóa thông báo (app tự tạo, đừng xóa)
 ├── thuchi-2026.json   ← thu chi năm 2026
 └── thuchi-2027.json   ← thu chi năm 2027 …
 ```
@@ -269,7 +256,8 @@ data/
                                              // tiền + trạng thái từng lần diễn: status "done" = đã hoàn thành, "cancel" = đã hủy
    "note": ""
  }],
- "bauShows": [{ "id": "mwf93wr9ic0vi", "name": "Bầu Hải", "phone": "0909123456" }],
+ "bauShows": [{ "id": "mwf93wr9ic0vi", "name": "Cty INVITA PALACE",
+               "contacts": [{ "name": "Nhân viên A", "phone": "0901111222" }, { "name": "Nhân viên B", "phone": "0903333444" }] }],
  "pushSubs": [],
  "sent": {}
 }
@@ -281,21 +269,20 @@ data/
  "version": 1,
  "year": 2026,
  "entries": [
-  { "id": "a1", "date": "2026-11-13", "type": "thu", "cat": "hottoc",  "amount": 80000,  "note": "" },
-  { "id": "a2", "date": "2026-11-13", "type": "thu", "cat": "massage", "amount": 150000, "note": "" },
+  { "id": "a1", "date": "2026-11-13", "type": "thu", "cat": "tiemtoc", "amount": 230000, "note": "" },
   { "id": "a3", "date": "2026-11-13", "type": "thu", "cat": "botiem",  "amount": 50000,  "note": "" },
   { "id": "a4", "date": "2026-11-13", "type": "thu", "cat": "khac",    "amount": 100000, "note": "Bán đồ cũ" },
   { "id": "a5", "date": "2026-11-13", "type": "chi", "cat": "chi",     "amount": 40000,  "note": "Ăn trưa" }
  ]
 }
 ```
-`cat`: `hottoc` Hớt tóc · `massage` Massage · `botiem` Tiền bo tiệm tóc · `khac` Tiền khác · `chi` Chi tiêu.
+`cat`: `tiemtoc` Tiền tiệm tóc (dữ liệu cũ `hottoc`, `massage` cũng tính vào đây) · `botiem` Tiền bo tiệm tóc · `khac` Tiền khác · `chi` Chi tiêu.
 
 ---
 
 ## Dung lượng & chi phí
 
-- Tất cả **0 đồng**: GitHub (kho riêng tư miễn phí), Vercel gói Hobby, Render gói Free, cron-job.org.
+- Tất cả **0 đồng**: GitHub (kho riêng tư miễn phí), Vercel gói Hobby (có sẵn 1 lịch chạy mỗi sáng), Render gói Free.
 - Thanh dung lượng trong app tính trên mốc **1 GB** (GitHub khuyên kho dưới 1 GB). Mỗi năm thu chi chỉ khoảng vài trăm KB nên dùng được rất lâu. Khi cần, xóa năm cũ trong **Cài đặt**.
 - GitHub giữ lịch sử từng lần lưu: lỡ xóa nhầm có thể vào kho kim1994-data → bấm vào file → **History** để xem bản cũ.
 
@@ -317,7 +304,7 @@ kim1994/
 ├── api/push.js             đăng ký nhận thông báo, gửi thử
 ├── api/cron.js             gửi nhắc trước 3 ngày / 1 ngày / 1 tiếng
 ├── api/ics.js              tạo file lịch nhắc
-├── api/keys.js             tạo khóa thông báo
+├── api/keys.js             link hẹn giờ (không bắt buộc)
 ├── api/status.js           kiểm tra kết nối dữ liệu (Cài đặt)
 ├── server.js               máy chủ cho Render (Vercel không dùng)
 ├── api/_lib/…              phần dùng chung của máy chủ

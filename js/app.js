@@ -14,13 +14,15 @@
   var lunarTxt = function (L) { return 'ngày ' + L.day + ' tháng ' + L.month + (L.leap ? ' nhuận' : ''); };
   var STORAGE_LIMIT = 1024 * 1024 * 1024;
 
+  // Tiền tiệm tóc = gộp hớt tóc + massage. 2 loại cũ chỉ để đọc dữ liệu cũ (vẫn cộng vào tiền tiệm tóc)
   var CATS = {
-    hottoc: { name: 'Hớt tóc', icon: '✂️' },
-    massage: { name: 'Massage', icon: '💆' },
+    tiemtoc: { name: 'Tiền tiệm tóc', icon: '✂️' },
     botiem: { name: 'Tiền bo tiệm tóc', icon: '💝' },
     khac: { name: 'Tiền khác', icon: '💰' },
     chi: { name: 'Chi tiêu', icon: '🧾' }
   };
+  var OLD_CATS = { hottoc: { name: 'Tiền tiệm tóc (hớt tóc)', icon: '✂️' }, massage: { name: 'Tiền tiệm tóc (massage)', icon: '✂️' } };
+  function catOf(c) { return CATS[c] || OLD_CATS[c] || CATS.khac; }
   var REPEAT = { none: 'Không lặp lại', month: 'Hằng tháng', year: 'Hằng năm' };
 
   var ICONS = {
@@ -49,9 +51,11 @@
   };
   function icon(n) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
 
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } }
   var now0 = new Date();
   var state = {
-    token: sessionStorage.getItem('kim_token') || '', statKey: 'day', calIdx: 0,
+    token: lsGet('kim_view'), edit: (function () { try { return JSON.parse(lsGet('kim_edit') || 'null'); } catch (e) { return null; } })(), statKey: 'day', calIdx: 0,
     shows: [], baus: [], entries: {}, fresh: {}, loadingYear: {}, years: [], storage: null, vapidPublic: null,
     view: 'home',
     cal: { y: now0.getFullYear(), m: now0.getMonth() + 1 },
@@ -59,16 +63,24 @@
     rep: { mode: 'month', y: now0.getFullYear(), m: now0.getMonth() + 1 },
     showFilter: 'upcoming', showTab: 'list', showQuery: '', afterLogin: null
   };
+  // logged = máy này đã đăng nhập 1 lần (được XEM). canEdit = đang trong phiên SỬA 20 phút
   var logged = function () { return !!state.token; };
+  function canEdit() { return !!(state.edit && state.edit.t && state.edit.exp > Date.now() + 5000); }
+  function editLeft() { return canEdit() ? Math.max(1, Math.ceil((state.edit.exp - Date.now()) / 60000)) : 0; }
+  function endEdit(silent) { state.edit = null; lsSet('kim_edit', null); if (!silent) toast('Đã thoát chế độ sửa'); renderHeader(); }
 
   /* ================= Máy chủ ================= */
   function api(path, opts) {
     opts = opts || {};
     var headers = { 'Content-Type': 'application/json' };
-    if (state.token) headers.Authorization = 'Bearer ' + state.token;
+    var tk = canEdit() ? state.edit.t : state.token;
+    if (tk) headers.Authorization = 'Bearer ' + tk;
     return fetch(path, Object.assign({}, opts, { headers: headers })).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
-        if (r.status === 401) { logout(true); throw new Error(j.error || 'Cần đăng nhập lại'); }
+        if (r.status === 401) {
+          if (j.need === 'e' && state.token) { endEdit(true); throw new Error('Phiên sửa đã hết 20 phút, bấm lại để nhập mật khẩu'); }
+          logout(true); throw new Error(j.error || 'Cần đăng nhập lại');
+        }
         if (!r.ok) throw new Error(j.error || ('Máy chủ lỗi ' + r.status));
         return j;
       });
@@ -81,14 +93,16 @@
     state.years = j.years || [];
     state.storage = j.storage || null;
     state.vapidPublic = j.vapidPublic || null;
+    state.pushDevices = j.pushDevices || [];
+    state.lastPushAt = j.lastPushAt || 0;
     saveCache();
   }
   function saveCache() {
-    try { sessionStorage.setItem('kim_cache', JSON.stringify({ shows: state.shows, baus: state.baus, entries: state.entries, years: state.years, storage: state.storage, vapidPublic: state.vapidPublic })); } catch (e) { }
+    try { localStorage.setItem('kim_cache', JSON.stringify({ shows: state.shows, baus: state.baus, entries: state.entries, years: state.years, storage: state.storage, vapidPublic: state.vapidPublic })); } catch (e) { }
   }
   function loadCache() {
     try {
-      var c = JSON.parse(sessionStorage.getItem('kim_cache') || 'null');
+      var c = JSON.parse(localStorage.getItem('kim_cache') || 'null');
       if (c) { state.shows = c.shows || []; state.baus = c.baus || []; state.entries = c.entries || {}; state.years = c.years || []; state.storage = c.storage || null; state.vapidPublic = c.vapidPublic || null; }
     } catch (e) { }
   }
@@ -105,6 +119,7 @@
       .then(function () { state.loadingYear[y] = null; render(); });
   }
   function persist(kind, action, payload, year) {
+    if (!canEdit()) return new Promise(function (resolve) { openLogin(function () { persist(kind, action, payload, year).then(resolve); }); });
     if (kind === 'show' || kind === 'bau') {
       var arr = kind === 'show' ? state.shows : state.baus;
       upsertLocal(arr, action, payload);
@@ -168,6 +183,13 @@
     return '<a class="btn btn-sm call" href="tel:' + p + '">' + icon('phone') + ' Gọi</a>' +
       '<a class="btn btn-sm zalo" href="https://zalo.me/' + z + '" target="_blank" rel="noopener">' + icon('zalo') + ' Zalo</a>';
   }
+  // Nút gọi / Zalo dạng biểu tượng tròn (gọn)
+  function iconBtns(phone, who) {
+    var p = telOf(phone); if (!p) return '';
+    var z = p.replace(/^\+84/, '0');
+    return '<a class="ib ib-call" href="tel:' + p + '" aria-label="Gọi ' + esc(who || '') + ' ' + esc(phone) + '" title="Gọi ' + esc(phone) + '">' + icon('phone') + '</a>' +
+      '<a class="ib ib-zalo" href="https://zalo.me/' + z + '" target="_blank" rel="noopener" aria-label="Zalo ' + esc(who || '') + ' ' + esc(phone) + '" title="Zalo ' + esc(phone) + '">' + icon('zalo') + '</a>';
+  }
   function bauOf(sh) { return state.baus.find(function (b) { return b.id === sh.bauId; }) || null; }
   function bauName(sh) { var b = bauOf(sh); return b ? b.name : (sh.bauName || ''); }
   function entriesOf(s) { return (state.entries[s.slice(0, 4)] || []).filter(function (e) { return e.date === s; }); }
@@ -179,13 +201,15 @@
   /* ================= Tính tiền ================= */
   function sumRange(from, to) {
     var t = todayISO();
-    var S = { huyList: [], hottoc: 0, massage: 0, botiem: 0, khac: 0, chi: 0, showNhan: 0, showBo: 0, showKhac: 0, showCount: 0, upNhan: 0, upCount: 0, pendCount: 0, pendSum: 0, huyCount: 0, khacList: [], chiList: [] };
+    var S = { huyList: [], tiemtoc: 0, botiem: 0, khac: 0, chi: 0, showNhan: 0, showBo: 0, showKhac: 0, showCount: 0, upNhan: 0, upCount: 0, pendCount: 0, pendSum: 0, huyCount: 0, khacList: [], chiList: [] };
     var now = Date.now();
     var ys = {}; ys[from.slice(0, 4)] = 1; ys[to.slice(0, 4)] = 1;
     Object.keys(ys).forEach(function (y) {
       (state.entries[y] || []).forEach(function (e) {
-        if (e.date < from || e.date > to || !(e.cat in S)) return;
-        S[e.cat] += Number(e.amount) || 0;
+        if (e.date < from || e.date > to) return;
+        var cat = e.cat === 'hottoc' || e.cat === 'massage' ? 'tiemtoc' : e.cat;
+        if (!(cat in S)) return;
+        S[cat] += Number(e.amount) || 0;
         if (e.cat === 'khac') S.khacList.push(e);
         if (e.cat === 'chi') S.chiList.push(e);
       });
@@ -198,7 +222,7 @@
       else if (C.showTimeUTC(o.iso, o.show.time) <= now) { S.pendCount++; S.pendSum += m.received + m.tip; }
       else { S.upNhan += m.received + m.tip; S.upCount++; }
     });
-    S.lam = S.hottoc + S.massage;
+    S.lam = S.tiemtoc;
     S.tiem = S.lam + S.botiem;
     S.show = S.showNhan + S.showBo + S.showKhac;
     S.thu = S.tiem + S.show + S.khac;
@@ -270,14 +294,12 @@
   /* ================= Vẽ giao diện ================= */
   var TABS = [['home', 'cal', 'Trang chủ'], ['shows', 'mic', 'Show'], ['money', 'wallet', 'Thu chi'], ['report', 'chart', 'Báo cáo'], ['settings', 'gear', 'Cài đặt']];
   function render() {
-    document.body.classList.toggle('locked', !logged());
-    if (!logged()) { renderLock(); return; }
-    $('#lock').hidden = true; $('#lock').innerHTML = '';
     $('#tabbar').innerHTML = TABS.map(function (t) {
       return '<button class="tab' + (state.view === t[0] ? ' active' : '') + '" data-act="tab" data-view="' + t[0] + '" aria-label="' + t[2] + '">' + icon(t[1]) + '<span>' + t[2] + '</span></button>';
     }).join('');
     renderHeader();
     $$('.view').forEach(function (el) { el.hidden = el.id !== 'view-' + state.view; });
+    if (!logged() && state.view !== 'home') { $('#view-' + state.view).innerHTML = loginCard(); return; }
     if (state.view === 'home') renderHome();
     else if (state.view === 'shows') renderShows();
     else if (state.view === 'money') renderMoney();
@@ -288,26 +310,29 @@
   function renderHeader() {
     var a = alerts();
     var nb = badgeCount();
-    $('#hdr-right').innerHTML = '<button class="icon-btn" data-act="bell" aria-label="Thông báo show">' + icon('bell') + (nb ? '<span class="badge">' + nb + '</span>' : '') + '</button>' +
-      '<button class="icon-btn" data-act="lock-now" aria-label="Khóa app">' + icon('lock') + '</button>';
+    var acc = canEdit()
+      ? '<button class="edit-pill on" data-act="end-edit" title="Bấm để thoát chế độ sửa">🔓 Sửa · còn ' + editLeft() + "'</button>"
+      : '<button class="edit-pill" data-act="login">' + icon('lock') + ' Đăng nhập</button>';
+    $('#hdr-right').innerHTML = (logged() ? '<button class="icon-btn" data-act="bell" aria-label="Thông báo show">' + icon('bell') + (nb ? '<span class="badge">' + nb + '</span>' : '') + '</button>' : '') + acc;
   }
 
-  /* ---------- Màn hình khóa: mở app là hỏi mật khẩu ---------- */
-  function renderLock() {
-    var el = $('#lock');
-    if (!el.hidden && $('#lg-pass')) return;
-    var t = todayISO(), p = C.parse(t);
-    el.innerHTML = '<div class="lock-box glass-strong">' +
-      '<img src="/icons/icon-192.png" alt="" width="76" height="76" class="lock-icon">' +
-      '<h1>Quản Lý $ Của Kim</h1><p class="hint">' + C.weekday(t) + ', ' + p.d + '/' + p.m + '/' + p.y + '</p>' +
+  /* ---------- Đăng nhập: xem không cần mật khẩu, thêm/sửa/xóa cần mật khẩu (phiên 20 phút) ---------- */
+  function loginCard() {
+    return '<section class="card glass login-card"><div><h2>Đăng nhập 1 lần trên máy này</h2><p class="hint">Sau lần đầu, mở app là xem được ngay. Khi thêm, sửa hoặc xóa mới cần nhập lại mật khẩu (mỗi lần dùng được 20 phút).</p></div>' +
+      '<button class="btn btn-primary" data-act="login">' + icon('lock') + ' Đăng nhập</button></section>';
+  }
+  var afterLogin = null;
+  function openLogin(next, why) {
+    afterLogin = typeof next === 'function' ? next : null;
+    openSheet('Nhập mật khẩu', '<p class="hint" style="margin-top:0">' + (why || (logged() ? 'Nhập mật khẩu để thêm, sửa hoặc xóa. Phiên sửa kéo dài <b>20 phút</b>.' : 'Đăng nhập 1 lần trên máy này để xem dữ liệu.')) + '</p>' +
       '<form id="lock-form" autocomplete="on"><label class="sr" for="lg-pass">Mật khẩu</label>' +
       '<input class="inp lock-inp" id="lg-pass" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" enterkeyhint="go">' +
       '<label class="check"><input type="checkbox" id="lg-show"> Hiện mật khẩu</label>' +
-      '<button class="btn btn-primary lock-btn" type="submit" data-act="do-login">Mở khóa</button></form>' +
-      '<p class="hint lock-note">Vì bảo mật, mỗi lần mở app đều phải nhập mật khẩu.</p></div>';
-    el.hidden = false;
-    setTimeout(function () { var i = $('#lg-pass'); if (i) i.focus(); }, 250);
+      '<button class="btn btn-primary lock-btn" type="submit">Đăng nhập</button></form>');
+    setTimeout(function () { var i = $('#lg-pass'); if (i) i.focus(); }, 320);
   }
+  // Bọc các thao tác thêm/sửa/xóa: chưa trong phiên sửa thì hỏi mật khẩu trước
+  function needEdit(fn) { if (canEdit()) fn(); else openLogin(fn); }
 
   /* ---------- Thống kê hôm nay / tuần này / tháng này ---------- */
   function periods() {
@@ -338,12 +363,12 @@
     var row = function (dot, label, val, cls, sub) {
       return '<div class="srow' + (sub ? ' sub' : '') + '"><span>' + (dot ? '<i class="dot" style="--c:' + dot + '"></i>' : '') + label + '</span><b class="' + (cls || '') + '">' + fmt(val) + '</b></div>';
     };
-    return '<section class="card glass stats"><div class="sec-h"><h2>Thu chi</h2>' + (addBtn ? '<button class="btn btn-sm btn-primary" data-act="add-entry">' + icon('plus') + ' Ghi thu chi</button>' : '') + '</div>' +
+    return '<section class="card glass stats"><div class="sec-h"><h2>Thu chi</h2>' + (addBtn ? '<button class="btn btn-sm btn-add-money" data-act="add-entry">' + icon('plus') + ' Thêm Thu Chi</button>' : '') + '</div>' +
       '<div class="stat-tiles">' + tiles + '</div>' +
       '<div class="stat-detail"><div class="sd-h"><b>' + cur.name + '</b><span>' + cur.sub + '</span></div>' +
       '<div class="sd-grid">' +
       '<div class="sd-col"><div class="sd-t">Tiệm tóc</div>' +
-      row('#5B8DEF', 'Tiền làm', S.lam, '') + row('', 'Hớt tóc', S.hottoc, '', 1) + row('', 'Massage', S.massage, '', 1) +
+      row('#5B8DEF', 'Tiền tiệm tóc', S.lam, '') +
       row('#F08BA8', 'Tiền bo tiệm', S.botiem, '') + '</div>' +
       '<div class="sd-col"><div class="sd-t">Show & khác</div>' +
       row('#A78BFA', 'Thu show (' + S.showCount + ' đã xong)', S.show, '') + row('', 'Nhận show', S.showNhan, '', 1) + row('', 'Bo show', S.showBo, '', 1) + (S.showKhac ? row('', 'Tiền khác show', S.showKhac, '', 1) : '') +
@@ -364,12 +389,12 @@
     return C.weekday(s);
   }
   function showRow(o) {
-    var sh = o.show, P = C.period(sh.time), L = C.toLunar(o.iso), bn = bauName(sh);
-    var place = sh.address ? esc(sh.address) : '';
+    var sh = o.show, P = C.period(sh.time);
+    var place = sh.address ? '📍 ' + esc(sh.address) : '';
     return '<button class="srow-show" data-act="open-show" data-id="' + sh.id + '" data-d="' + o.iso + '">' +
       '<span class="ss-time t-' + P.key + '-soft"><b>' + P.clock + '</b><small>' + P.name.toLowerCase() + '</small></span>' +
       '<span class="ss-main"><span class="ss-name">' + esc(sh.name) + '</span>' +
-      '<span class="ss-meta">' + [bn ? (/^bầu/i.test(bn) ? '' : 'Bầu ') + esc(bn) : '', place].filter(Boolean).join(' · ') + '</span></span>' +
+      (place ? '<span class="ss-place">' + place + '</span>' : '') + '</span>' +
       '<span class="ss-chev">' + icon('chevR') + '</span></button>';
   }
   function showSchedule() {
@@ -405,6 +430,7 @@
       '<div class="h-lun"><div class="h-lbl">Âm lịch</div><div class="h-big lunar">' + L.day + '</div><div class="h-wd">Tháng ' + L.month + (L.leap ? ' nhuận' : '') + '</div><div class="h-my">Năm ' + C.canChi(L.year) + '</div></div></div>' +
       '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
       hs.map(function (x) { return '<span class="chip-hol ' + x.type + '">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
+    if (!logged()) { $('#view-home').innerHTML = h + loginCard() + calendarBlock(); return; }
     h += notifyBlock() + confirmBlock() + phoneAlert();
     h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
     h += calendarBlock();
@@ -433,7 +459,7 @@
     if (st === 'need-icon') body = 'Bạn đang mở bằng <b>Safari</b>. Muốn có số trên icon và thông báo: bấm nút <b>Chia sẻ</b> → <b>Thêm vào MH chính</b>, rồi <b>mở app bằng icon</b> vừa thêm.';
     else if (st === 'unsupported') body = 'Trình duyệt này chưa hỗ trợ thông báo. Trên iPhone/iPad cần iOS 16.4 trở lên và mở app bằng icon.';
     else if (st === 'blocked') body = 'Thông báo đang bị <b>chặn</b>. Vào <b>Cài đặt</b> của điện thoại → <b>Thông báo</b> → chọn <b>Quản Lý $ Của Kim</b> → bật <b>Cho phép thông báo</b> và <b>Kí hiệu</b>, rồi mở lại app.';
-    else if (st === 'local') body = 'Đã cho phép thông báo, nhưng máy chủ <b>chưa cài khóa thông báo</b> nên chỉ nhắc khi đang mở app. Làm Bước 8 trong HUONG-DAN.md để có số trên icon mỗi sáng.';
+    else if (st === 'local') body = 'Đã cho phép thông báo nhưng máy chủ chưa sẵn sàng. Mở <b>Cài đặt</b> → <b>Kiểm tra kết nối dữ liệu</b> để xem lỗi.';
     else { body = 'Bấm nút dưới → chọn <b>Cho phép</b>. Ngày nào có sự kiện (show hôm nay, show chờ xác nhận) app hiện <b>số trên icon</b> và gửi thông báo nhắc. Không có sự kiện thì không thông báo.'; btn = '<button class="btn btn-primary nt-btn" data-act="push-on">' + icon('bell') + ' Bật số thông báo trên icon</button>'; }
     return '<section class="card nt-box"><div class="nt-status">🔕 Máy này <b>CHƯA BẬT</b> thông báo</div><p class="nt-body">' + body + '</p>' + btn + '</section>';
   }
@@ -444,7 +470,7 @@
       var had = localStorage.getItem('kim_push') === '1';
       if (sub && Notification.permission === 'granted') {
         if (!had) localStorage.setItem('kim_push', '1');
-        if (logged()) api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON() }) }).catch(function () { });
+        if (logged()) api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON(), standalone: isStandalone() }) }).catch(function () { });
       } else if (had) localStorage.removeItem('kim_push');
       if (had !== (localStorage.getItem('kim_push') === '1') && state.view === 'home') renderHome();
     }).catch(function () { });
@@ -536,7 +562,9 @@
       if ((sh.repeat || 'none') === 'none' && sh.date < t) return;
       out.push({ kind: 'show', id: sh.id, name: sh.name, phone: sh.phone, when: next || sh.date });
     });
-    state.baus.forEach(function (b) { if (fakePhone(b.phone)) out.push({ kind: 'bau', id: b.id, name: b.name, phone: b.phone }); });
+    state.baus.forEach(function (b) {
+      contactsOf(b).forEach(function (c) { if (fakePhone(c.phone)) out.push({ kind: 'bau', id: b.id, name: b.name + (c.name ? ' – ' + c.name : ''), phone: c.phone }); });
+    });
     return out;
   }
   function phoneAlert() {
@@ -608,7 +636,7 @@
         b += '<h3 class="sub-h">Show trong ngày</h3>' + (occ.length ? '<div class="stack">' + occ.map(function (o) { return showCard(o, true); }).join('') + '</div>' : '<p class="hint">Chưa có show.</p>');
         b += '<h3 class="sub-h">Thu chi trong ngày</h3>' + (es.length ? '<div class="stack">' + es.map(entryRow).join('') + '</div>' : '<p class="hint">Chưa ghi thu chi.</p>') +
           '<div style="margin-top:8px">' + line('Tổng thu (gồm show)', S.thu, 'pos') + line('Tổng chi', S.chi, 'neg') + line('Còn lại', S.con, S.con < 0 ? 'neg' : 'pos') + '</div>';
-        f = '<button class="btn" data-act="add-entry" data-d="' + s + '">' + icon('plus') + ' Thu chi</button><button class="btn btn-primary" data-act="add-show" data-d="' + s + '">' + icon('plus') + ' Thêm show</button>';
+        f = '<button class="btn btn-add-money" data-act="add-entry" data-d="' + s + '">' + icon('plus') + ' Thêm Thu Chi</button><button class="btn btn-primary" data-act="add-show" data-d="' + s + '">' + icon('plus') + ' Thêm show</button>';
       } else {
         b += '<p class="hint" style="margin-top:14px">Đăng nhập để xem và thêm show, thu chi của ngày này.</p>';
         f = '<button class="btn btn-primary" data-act="login">Đăng nhập</button>';
@@ -648,11 +676,14 @@
       '<h3>' + esc(sh.name) + '</h3><div class="hint">' + C.weekday(s) + ', ' + dmy(s) + rep + '</div>' + stTag +
       '<div class="info">' +
       (sh.host ? '<div>' + icon('user') + '<span>Chủ tiệc: <b>' + esc(sh.host) + '</b></span></div>' : '') +
-      (bn ? '<div>' + icon('star') + '<span>Bầu show: <b>' + esc(bn) + '</b></span></div>' : '') +
-      (sh.address ? '<div>' + icon('pin') + '<span>' + esc(sh.address) + '</span></div>' : '') +
+      (sh.address ? '<div class="place">' + icon('pin') + '<span>Địa điểm: ' + esc(sh.address) + '</span></div>' : '') +
+
       (sh.note ? '<div>' + icon('note') + '<span>' + esc(sh.note) + '</span></div>' : '') + '</div>' +
       (sh.phone ? '<div class="contact"><span class="who">SĐT liên hệ: ' + esc(sh.phone) + '</span>' + contactBtns(sh.phone) + '</div>' : '') +
-      (bau && bau.phone ? '<div class="contact"><span class="who">Bầu show ' + esc(bau.name) + ': ' + esc(bau.phone) + '</span>' + contactBtns(bau.phone) + '</div>' : '') +
+      (bn ? '<div class="bau-box"><div class="bau-title">' + icon('star') + '<span>Tên CTy, Tên Dịch Vụ: <b>' + esc(bn) + '</b></span></div>' +
+        contactsOf(bau).filter(function (c) { return c.phone; }).map(function (c) {
+          return '<div class="bau-line"><span class="bau-who">' + esc(c.name || c.phone) + ':</span>' + iconBtns(c.phone, c.name || bn) + '</div>';
+        }).join('') + '</div>' : '') +
       (st === 'cancel' ? '' : '<div class="money-line' + (st === 'done' ? '' : ' expected') + '"><span>' + (st === 'done' ? 'Đã nhận' : 'Dự kiến nhận') + ': <b>' + fmt(m.received) + '</b></span><span>Bo show: <b>' + (m.tip ? fmt(m.tip) : 'chưa nhập') + '</b></span>' +
         (m.other ? '<span>Khác: <b>' + fmt(m.other) + '</b>' + (m.otherNote ? ' (' + esc(m.otherNote) + ')' : '') + '</span>' : '') + '</div>') +
       '<div class="sc-actions">' + mapBtn +
@@ -664,8 +695,8 @@
 
   /* ---------- Trang Show ---------- */
   function renderShows() {
-    var h = '<div class="seg big-seg"><button class="' + (state.showTab === 'list' ? 'on' : '') + '" data-act="show-tab" data-t="list">🎤 Danh sách show</button>' +
-      '<button class="' + (state.showTab === 'bau' ? 'on' : '') + '" data-act="show-tab" data-t="bau">⭐ Bầu show (' + state.baus.length + ')</button></div>';
+    var h = '<div class="color-tabs"><button class="ct ct-show' + (state.showTab === 'list' ? ' on' : '') + '" data-act="show-tab" data-t="list">🎤 Danh sách show</button>' +
+      '<button class="ct ct-bau' + (state.showTab === 'bau' ? ' on' : '') + '" data-act="show-tab" data-t="bau">⭐ Bầu show (' + state.baus.length + ')</button></div>';
     if (state.showTab === 'list') {
       h += '<div class="toolbar"><div class="seg"><button class="' + (state.showFilter === 'upcoming' ? 'on' : '') + '" data-act="show-filter" data-f="upcoming">Sắp tới</button>' +
         '<button class="' + (state.showFilter === 'past' ? 'on' : '') + '" data-act="show-filter" data-f="past">Đã diễn</button></div>' +
@@ -675,15 +706,16 @@
       $('#view-shows').innerHTML = h;
       fillShowList();
     } else {
-      h += '<section class="card glass"><div class="sec-h"><h2>Danh sách bầu show</h2><button class="btn btn-sm btn-primary" data-act="add-bau">' + icon('plus') + ' Thêm bầu</button></div>' +
-        '<p class="hint" style="margin-top:0">Nhập sẵn ở đây, khi thêm show chỉ cần chọn tên.</p>' +
+      h += '<section class="card glass"><div class="sec-h"><h2>Danh sách bầu show</h2><button class="btn btn-sm btn-primary" data-act="add-bau">' + icon('plus') + ' Thêm bầu show</button></div>' +
+        '<p class="hint" style="margin-top:0">Nhập sẵn tên CTy / dịch vụ và các người liên hệ. Khi thêm show chỉ cần chọn tên.</p>' +
         (state.baus.length ? '<div class="stack">' + state.baus.slice().sort(function (a, b) { return a.name.localeCompare(b.name, 'vi'); }).map(function (b) {
           var cnt = state.shows.filter(function (s) { return s.bauId === b.id; }).length;
-          return '<div class="entry"><span class="emo">⭐</span><div class="t"><div class="n">' + esc(b.name) + '</div><div class="d">' + (b.phone ? esc(b.phone) + ' · ' : '') + cnt + ' show</div>' +
-            (b.phone ? '<div class="contact" style="margin:6px 0 0">' + contactBtns(b.phone) + '</div>' : '') + '</div>' +
+          var cs = contactsOf(b);
+          return '<div class="entry bau-entry"><span class="emo">⭐</span><div class="t"><div class="n">' + esc(b.name) + '</div><div class="d">' + cs.length + ' liên hệ · ' + cnt + ' show</div>' +
+            cs.map(function (c) { return '<div class="bau-ct"><span><b>' + esc(c.name || 'Liên hệ') + '</b>' + (c.phone ? ' · ' + esc(c.phone) : '') + '</span>' + (c.phone ? '<span class="row-btns">' + contactBtns(c.phone) + '</span>' : '') + '</div>'; }).join('') + '</div>' +
             '<button class="icon-btn sm" data-act="edit-bau" data-id="' + b.id + '" aria-label="Sửa">' + icon('edit') + '</button>' +
             '<button class="icon-btn sm danger" data-act="del-bau" data-id="' + b.id + '" aria-label="Xóa">' + icon('trash') + '</button></div>';
-        }).join('') + '</div>' : '<p class="empty-state">Chưa có bầu show nào. Bấm “Thêm bầu” để nhập.</p>') + '</section>';
+        }).join('') + '</div>' : '<p class="empty-state">Chưa có bầu show nào. Bấm “Thêm bầu show” để nhập.</p>') + '</section>';
       $('#view-shows').innerHTML = h;
     }
   }
@@ -711,13 +743,15 @@
     var b = '<div id="show-form"><input type="hidden" id="sf-id" value="' + (sh ? sh.id : '') + '"><input type="hidden" id="sf-dtype" value="' + dt + '">' +
       '<div class="field"><label for="sf-name">Tên show *</label><input class="inp" id="sf-name" maxlength="120" value="' + v('name') + '" placeholder="VD: Đám cưới anh Tuấn – chị Lan"></div>' +
       '<div class="field"><label for="sf-host">Chủ tiệc</label><input class="inp" id="sf-host" maxlength="120" value="' + v('host') + '"></div>' +
-      '<div class="field"><label for="sf-bau">Bầu show</label><select class="inp" id="sf-bau"><option value="">Không có bầu show</option>' +
-      state.baus.map(function (x) { return opt(x.id, sh ? sh.bauId : '', esc(x.name) + (x.phone ? ' · ' + esc(x.phone) : '')); }).join('') +
-      '<option value="__new">+ Thêm bầu show mới…</option></select>' +
-      '<div id="sf-nb" class="grid2" hidden><input class="inp" id="sf-nb-name" placeholder="Tên bầu show mới"><input class="inp" id="sf-nb-phone" type="tel" inputmode="tel" placeholder="SĐT bầu show"></div></div>' +
-      '<div class="field"><label for="sf-addr">Địa chỉ</label><textarea class="inp" id="sf-addr" rows="2" maxlength="400">' + v('address') + '</textarea></div>' +
-      '<div class="field"><label for="sf-map">Link Google Map</label><input class="inp" id="sf-map" inputmode="url" maxlength="600" value="' + v('map') + '" placeholder="Dán link Google Maps vào đây"></div>' +
       '<div class="field"><label for="sf-phone">SĐT liên hệ (chủ tiệc)</label><input class="inp" id="sf-phone" type="tel" inputmode="tel" maxlength="30" value="' + v('phone') + '"></div>' +
+      '<div class="field"><label for="sf-bau">Bầu show (Tên CTy, Tên Dịch Vụ)</label><select class="inp" id="sf-bau"><option value="">Không có bầu show</option>' +
+      state.baus.map(function (x) { var c0 = contactsOf(x)[0]; return opt(x.id, sh ? sh.bauId : '', esc(x.name) + (c0 ? ' · ' + esc([c0.name, c0.phone].filter(Boolean).join(' ')) : '')); }).join('') +
+      '<option value="__new">+ Thêm bầu show mới…</option></select>' +
+      '<div id="sf-nb" hidden><input class="inp" id="sf-nb-name" placeholder="Tên CTy, Tên Dịch Vụ" style="margin-top:8px">' +
+      '<div class="grid2" style="margin-top:8px"><input class="inp" id="sf-nb-cname" placeholder="Tên người liên hệ"><input class="inp" id="sf-nb-phone" type="tel" inputmode="tel" placeholder="SĐT"></div>' +
+      '<div class="hint">Muốn thêm nhiều SĐT: vào tab Show → Bầu show → bấm Sửa → Thêm SĐT.</div></div></div>' +
+      '<div class="field"><label for="sf-addr">Địa Điểm</label><textarea class="inp" id="sf-addr" rows="2" maxlength="400">' + v('address') + '</textarea></div>' +
+      '<div class="field"><label for="sf-map">Link Google Map</label><input class="inp" id="sf-map" inputmode="url" maxlength="600" value="' + v('map') + '" placeholder="Dán link Google Maps vào đây"></div>' +
       '<div class="field"><span class="lbl">Ngày nhận show</span><div class="seg"><button type="button" data-act="date-type" data-t="am" class="' + (dt === 'am' ? 'on' : '') + '">🌙 Âm lịch</button>' +
       '<button type="button" data-act="date-type" data-t="duong" class="' + (dt === 'duong' ? 'on' : '') + '">☀️ Dương lịch</button></div>' +
       '<div id="sf-am"' + (dt === 'am' ? '' : ' hidden') + ' style="margin-top:8px"><div class="grid3">' +
@@ -814,8 +848,9 @@
     var bauId = $('#sf-bau').value, pre = Promise.resolve(true), newBau = null;
     if (bauId === '__new') {
       var bn = $('#sf-nb-name').value.trim();
-      if (!bn) return toast('Nhập tên bầu show mới', 'err');
-      newBau = { id: uid(), name: bn, phone: $('#sf-nb-phone').value.trim() };
+      if (!bn) return toast('Nhập Tên CTy, Tên Dịch Vụ của bầu show mới', 'err');
+      var nbc = { name: $('#sf-nb-cname').value.trim(), phone: $('#sf-nb-phone').value.trim() };
+      newBau = { id: uid(), name: bn, contacts: nbc.name || nbc.phone ? [nbc] : [], phone: nbc.phone };
       bauId = newBau.id;
     }
     var show = {
@@ -879,18 +914,42 @@
   }
 
   /* ---------- Bầu show ---------- */
+  // Danh sách liên hệ của bầu show (hỗ trợ dữ liệu cũ chỉ có 1 số phone)
+  function contactsOf(b) {
+    if (!b) return [];
+    var c = Array.isArray(b.contacts) ? b.contacts.filter(function (x) { return x && (x.name || x.phone); }) : [];
+    if (!c.length && b.phone) c = [{ name: '', phone: b.phone }];
+    return c;
+  }
+  function contactRow(c, i) {
+    return '<div class="ct-row" data-i="' + i + '"><div class="ct-n">Liên hệ ' + (i + 1) + (i ? '<button type="button" class="ct-del" data-act="bau-del-contact" aria-label="Bỏ liên hệ này">' + icon('close') + '</button>' : '') + '</div>' +
+      '<div class="field"><label>Tên người liên hệ</label><input class="inp bf-cname" maxlength="80" placeholder="VD: Chị Hoa – phòng sự kiện" value="' + esc(c.name || '') + '"></div>' +
+      '<div class="field"><label>SĐT</label><input class="inp bf-cphone" type="tel" inputmode="tel" maxlength="30" placeholder="VD: 0909 123 456" value="' + esc(c.phone || '') + '"></div></div>';
+  }
   function openBau(id) {
     var b = id ? state.baus.find(function (x) { return x.id === id; }) : null;
+    var cs = contactsOf(b); if (!cs.length) cs = [{ name: '', phone: '' }];
     openSheet(b ? 'Sửa bầu show' : 'Thêm bầu show',
-      '<input type="hidden" id="bf-id" value="' + (b ? b.id : '') + '"><div class="field"><label for="bf-name">Tên bầu show *</label><input class="inp" id="bf-name" maxlength="120" value="' + esc(b ? b.name : '') + '"></div>' +
-      '<div class="field"><label for="bf-phone">SĐT</label><input class="inp" id="bf-phone" type="tel" inputmode="tel" maxlength="30" value="' + esc(b ? b.phone : '') + '"></div>',
+      '<input type="hidden" id="bf-id" value="' + (b ? b.id : '') + '">' +
+      '<div class="field"><label for="bf-name">Tên CTy, Tên Dịch Vụ *</label><input class="inp" id="bf-name" maxlength="120" placeholder="VD: Cty INVITA PALACE" value="' + esc(b ? b.name : '') + '"></div>' +
+      '<div id="bf-contacts">' + cs.map(contactRow).join('') + '</div>' +
+      '<button type="button" class="btn btn-sm btn-add-phone" data-act="bau-add-contact">' + icon('plus') + ' Thêm SĐT</button>',
       '<button class="btn" data-act="close-sheet">Hủy</button><button class="btn btn-primary" data-act="save-bau">Lưu</button>');
   }
+  function renumberContacts() {
+    $$('#bf-contacts .ct-row').forEach(function (r, i) {
+      r.dataset.i = i; var n = $('.ct-n', r);
+      n.innerHTML = 'Liên hệ ' + (i + 1) + (i ? '<button type="button" class="ct-del" data-act="bau-del-contact" aria-label="Bỏ liên hệ này">' + icon('close') + '</button>' : '');
+    });
+  }
   function saveBau(btn) {
-    var name = $('#bf-name').value.trim(); if (!name) return toast('Nhập tên bầu show', 'err');
-    var b = { id: $('#bf-id').value || uid(), name: name, phone: $('#bf-phone').value.trim() };
+    var name = $('#bf-name').value.trim(); if (!name) { $('#bf-name').focus(); return toast('Nhập tên CTy / tên dịch vụ', 'err'); }
+    var contacts = $$('#bf-contacts .ct-row').map(function (r) {
+      return { name: $('.bf-cname', r).value.trim(), phone: $('.bf-cphone', r).value.trim() };
+    }).filter(function (c) { return c.name || c.phone; });
+    var b = { id: $('#bf-id').value || uid(), name: name, contacts: contacts, phone: contacts[0] ? contacts[0].phone : '' };
     busy(btn, true);
-    persist('bau', 'upsert', b).then(function (ok) { busy(btn, false); if (ok) { closeSheet(); toast('Đã lưu bầu show'); render(); } });
+    persist('bau', 'upsert', b).then(function (ok) { busy(btn, false); if (ok) { closeSheet(); toast('Đã lưu: ' + name); render(); } });
   }
   function delBau(id) {
     var b = state.baus.find(function (x) { return x.id === id; }); if (!b) return;
@@ -901,7 +960,7 @@
 
   /* ---------- Thu chi ---------- */
   function entryRow(e) {
-    var c = CATS[e.cat] || CATS.khac, chi = e.cat === 'chi';
+    var c = catOf(e.cat), chi = e.cat === 'chi';
     return '<div class="entry"><span class="emo">' + c.icon + '</span><div class="t"><div class="n">' + esc(c.name) + '</div>' + (e.note ? '<div class="d">' + esc(e.note) + '</div>' : '') + '</div>' +
       '<b class="a ' + (chi ? 'neg' : 'pos') + '">' + (chi ? '−' : '+') + fmt(e.amount) + '</b>' +
       '<button class="icon-btn sm" data-act="edit-entry" data-id="' + e.id + '" aria-label="Sửa">' + icon('edit') + '</button>' +
@@ -919,9 +978,7 @@
       '<button class="btn day-btn" data-act="money-prev">' + icon('chevL') + ' Ngày hôm trước</button>' +
       '<button class="btn day-btn" data-act="money-next">Ngày hôm sau ' + icon('chevR') + '</button></div>';
     h += '<div class="wide-2"><section class="sum glass"><div class="hint">Ngày đang xem · còn lại (thu − chi)</div><div class="big ' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</div>' +
-      '<div class="line"><span>Tiền làm tiệm tóc</span><b>' + fmt(S.lam) + '</b></div>' +
-      '<div class="line sub"><span>Hớt tóc</span><span>' + fmt(S.hottoc) + '</span></div>' +
-      '<div class="line sub"><span>Massage</span><span>' + fmt(S.massage) + '</span></div>' +
+      '<div class="line"><span>Tiền tiệm tóc</span><b>' + fmt(S.lam) + '</b></div>' +
       '<div class="line"><span>Tiền bo tiệm tóc</span><b>' + fmt(S.botiem) + '</b></div>' +
       '<div class="line"><span>Thu show (' + S.showCount + ' show)</span><b>' + fmt(S.show) + '</b></div>' +
       (S.showCount ? '<div class="line sub"><span>Tiền nhận show</span><span>' + fmt(S.showNhan) + '</span></div><div class="line sub"><span>Tiền bo show</span><span>' + fmt(S.showBo) + '</span></div>' : '') +
@@ -945,7 +1002,7 @@
   function notePh(c) { return c === 'khac' ? 'VD: Bán đồ cũ, được cho…' : c === 'chi' ? 'VD: Tiền điện, đi chợ, xăng…' : 'VD: Khách quen anh Hùng'; }
   function openEntry(id, cat, date) {
     var e = id ? findEntry(id) : null;
-    var c0 = e ? e.cat : (cat || 'hottoc'), d0 = e ? e.date : (date || state.moneyDate);
+    var c0 = e ? (e.cat === 'hottoc' || e.cat === 'massage' ? 'tiemtoc' : e.cat) : (cat || 'tiemtoc'), d0 = e ? e.date : (date || state.moneyDate);
     var b = '<input type="hidden" id="ef-id" value="' + (e ? e.id : '') + '"><input type="hidden" id="ef-cat" value="' + c0 + '">' +
       '<div class="field"><span class="lbl">Loại</span><div class="chips">' + Object.keys(CATS).map(function (k) {
         return '<button type="button" class="chip' + (k === c0 ? ' on' : '') + '" data-act="pick-cat" data-cat="' + k + '">' + CATS[k].icon + ' ' + CATS[k].name + '</button>';
@@ -980,7 +1037,7 @@
   }
   function delEntry(id) {
     var e = findEntry(id); if (!e) return;
-    if (!confirm('Xóa khoản ' + (CATS[e.cat] || CATS.khac).name + ' ' + fmt(e.amount) + ' ngày ' + dmy(e.date) + '?')) return;
+    if (!confirm('Xóa khoản ' + catOf(e.cat).name + ' ' + fmt(e.amount) + ' ngày ' + dmy(e.date) + '?')) return;
     persist('entry', 'delete', id, e.date.slice(0, 4)).then(function (ok) { if (ok) toast('Đã xóa'); render(); });
     closeSheet(); render();
   }
@@ -995,7 +1052,7 @@
       (arr.length > 15 ? '<p class="hint">…và ' + (arr.length - 15) + ' mục khác</p>' : '');
   }
   function reportBody(S, label) {
-    var parts = [['Tiền làm', S.lam, '#0A6CDB'], ['Bo tiệm tóc', S.botiem, '#FF5E8A'], ['Show', S.show, '#8E44C9'], ['Thu khác', S.khac, '#14A391']];
+    var parts = [['Tiệm tóc', S.lam, '#0A6CDB'], ['Bo tiệm tóc', S.botiem, '#FF5E8A'], ['Show', S.show, '#8E44C9'], ['Thu khác', S.khac, '#14A391']];
     var tot = S.thu || 1;
     return '<section class="sum glass"><div class="hint">Tiết kiệm được ' + label + '</div><div class="big ' + (S.con < 0 ? 'neg' : 'pos') + '">' + fmt(S.con) + '</div>' +
       '<div class="kv"><span>Tổng thu <b class="pos">' + fmt(S.thu) + '</b></span><span>Tổng chi <b class="neg">' + fmt(S.chi) + '</b></span>' +
@@ -1003,10 +1060,10 @@
       '<div class="bar">' + parts.map(function (x) { return x[1] > 0 ? '<i style="width:' + (x[1] / tot * 100) + '%;background:' + x[2] + '" title="' + x[0] + '"></i>' : ''; }).join('') + '</div>' +
       '<div class="legend">' + parts.map(function (x) { return '<span style="--c:' + x[2] + '">' + x[0] + ' ' + (S.thu ? Math.round(x[1] / tot * 100) : 0) + '%</span>'; }).join('') + '</div></section>' +
       '<div class="wide-2">' +
-      '<section class="card glass"><h2>✂️ Tiệm tóc</h2>' + line('Hớt tóc', S.hottoc) + line('Massage', S.massage) +
-      '<div class="line total"><span>Tiền làm (hớt tóc + massage)</span><b>' + fmt(S.lam) + '</b></div>' +
-      '<div class="line total"><span>Tiền bo tiệm tóc (riêng)</span><b>' + fmt(S.botiem) + '</b></div>' +
-      '<div class="line total"><span>Tổng tiệm tóc</span><b class="pos">' + fmt(S.tiem) + '</b></div></section>' +
+      '<section class="card glass"><h2>✂️ Tiệm tóc</h2>' +
+      '<div class="line total"><span>Doanh thu tiệm tóc</span><b class="pos">' + fmt(S.lam) + '</b></div>' +
+      '<div class="line"><span>Tiền bo tiệm tóc (riêng)</span><b>' + fmt(S.botiem) + '</b></div>' +
+      '<div class="line sub"><span>Tổng tiệm tóc (gồm bo)</span><span>' + fmt(S.tiem) + '</span></div></section>' +
       '<section class="card glass"><h2>🎤 Show</h2><div class="line"><span>Số show đã hoàn thành</span><b>' + S.showCount + '</b></div>' +
       line('Tiền nhận show', S.showNhan) + line('Tiền bo show', S.showBo) +
       '<div class="line total"><span>Tổng thu show</span><b class="pos">' + fmt(S.show) + '</b></div>' +
@@ -1024,13 +1081,13 @@
     return '<tr' + (act || '') + '><td>' + label + '</td><td>' + C.dots(S.lam) + '</td><td>' + C.dots(S.botiem) + '</td><td>' + C.dots(S.show) + '</td><td>' + C.dots(S.khac) + '</td>' +
       '<td class="pos">' + C.dots(S.thu) + '</td><td class="neg">' + C.dots(S.chi) + '</td><td class="' + (S.con < 0 ? 'neg' : '') + '"><b>' + C.dots(S.con) + '</b></td></tr>';
   }
-  var THEAD = '<thead><tr><th>FIRST</th><th>Tiền làm</th><th>Bo tiệm</th><th>Show</th><th>Khác</th><th>Tổng thu</th><th>Chi</th><th>Tiết kiệm</th></tr></thead>';
+  var THEAD = '<thead><tr><th>FIRST</th><th>Tiệm tóc</th><th>Bo tiệm</th><th>Show</th><th>Khác</th><th>Tổng thu</th><th>Chi</th><th>Tiết kiệm</th></tr></thead>';
   function renderReport() {
     var r = state.rep; needYear(r.y);
     var isM = r.mode === 'month';
     var from = isM ? C.iso(r.y, r.m, 1) : C.iso(r.y, 1, 1), to = isM ? C.iso(r.y, r.m, C.dim(r.y, r.m)) : C.iso(r.y, 12, 31);
     var S = sumRange(from, to);
-    var h = '<div class="seg big-seg"><button class="' + (isM ? 'on' : '') + '" data-act="rep-mode" data-m="month">Theo tháng</button><button class="' + (!isM ? 'on' : '') + '" data-act="rep-mode" data-m="year">Theo năm</button></div>' +
+    var h = '<div class="color-tabs"><button class="ct ct-month' + (isM ? ' on' : '') + '" data-act="rep-mode" data-m="month">📅 Theo tháng</button><button class="ct ct-year' + (!isM ? ' on' : '') + '" data-act="rep-mode" data-m="year">🗓️ Theo năm</button></div>' +
       '<section class="datebar glass"><button class="icon-btn" data-act="rep-prev" aria-label="Trước">' + icon('chevL') + '</button><div class="mid"><div class="dtitle">' + (isM ? 'Tháng ' + r.m + ' năm ' + r.y : 'Năm ' + r.y) + '</div><div class="dsub">Đơn vị: đồng</div></div>' +
       '<button class="icon-btn" data-act="rep-next" aria-label="Sau">' + icon('chevR') + '</button></section>' +
       reportBody(S, isM ? 'tháng ' + r.m : 'năm ' + r.y);
@@ -1072,20 +1129,26 @@
       '<p class="hint">Dữ liệu lưu trong kho GitHub riêng tư của bạn. Mỗi năm thu chi chỉ vài trăm KB nên dùng được rất nhiều năm.</p>' +
       (st && st.files && st.files.length ? '<details><summary>Xem từng file</summary>' + st.files.map(function (f) { return '<div class="line"><span>' + esc(f.name) + '</span><b>' + fmtBytes(f.size) + '</b></div>'; }).join('') + '</details>' : '') + '</section>';
 
-    h += '<section class="card glass"><h2>🔔 Thông báo nhắc show</h2>' +
-      '<p class="hint" style="margin-top:0">Nhắc trước 3 ngày, trước 1 ngày và trước giờ show 1 tiếng. Ngày nào có sự kiện thì <b>khoảng 7 giờ sáng</b> gửi 1 tin nhắc và hiện <b>số trên icon app</b> (= show hôm nay + show chờ xác nhận). Không có sự kiện thì không gửi.</p>' +
-      (!standalone ? '<p class="preview">Trên iPhone/iPad: phải <b>thêm app vào Màn hình chính</b> rồi mở bằng icon thì mới bật được thông báo (xem hướng dẫn bên dưới).</p>' : '') +
-      '<div class="line"><span>Quyền thông báo trên máy này</span><b>' + (perm === 'granted' ? '✅ Đã cho phép' : perm === 'denied' ? '⛔ Đã chặn' : perm === 'unsupported' ? 'Chưa hỗ trợ' : 'Chưa bật') + '</b></div>' +
-      '<div class="line"><span>Nhắc cả khi đóng app</span><b>' + (pushOn ? '✅ Đang bật' : 'Chưa bật') + '</b></div>' +
-      '<div class="row-btns" style="margin-top:10px"><button class="btn btn-primary" data-act="push-on">' + icon('bell') + ' Bật thông báo</button>' +
-      (pushOn ? '<button class="btn" data-act="push-test">Gửi thử</button>' : '') + '</div>' +
-      '<details><summary>Cài đặt nhắc khi đóng app (làm 1 lần)</summary><p class="hint">Bấm nút dưới để lấy mã, rồi làm theo Bước 8 trong file HUONG-DAN.md.</p>' +
-      '<button class="btn btn-sm" data-act="push-keys">Lấy mã cài đặt</button><div id="keys-out"></div></details>' +
-      '<p class="hint">Cách chắc chắn nhất: bấm “Thêm vào lịch nhắc” trên mỗi thẻ show. Lịch của điện thoại sẽ tự nhắc đúng 3 mốc giờ, kể cả khi không mở app.</p></section>';
+    var ns = notifyState(), devs = state.pushDevices || [];
+    var stLine = ns === 'on' ? '<div class="nt-st on">✅ Máy này ĐANG BẬT thông báo</div>'
+      : ns === 'blocked' ? '<div class="nt-st off">⛔ Máy này ĐANG CHẶN thông báo</div>'
+      : '<div class="nt-st off">🔕 Máy này CHƯA BẬT thông báo</div>';
+    var fmtDT = function (ms) { var d = new Date(ms); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+    h += '<section class="card glass nt-card"><h2>🔔 Thông báo trên điện thoại</h2>' +
+      '<p class="hint" style="margin-top:0">Mỗi sáng khoảng <b>7:00 – 8:00</b>, nếu hôm đó có sự kiện (show hôm nay, show chờ xác nhận hoàn thành), máy chủ gửi 1 thông báo (hiện cả trên màn hình khóa) và đặt <b>số trên icon app</b> bằng đúng số ở chuông. Không có sự kiện thì không gửi. Show sắp tới còn được nhắc trước 3 ngày và trước 1 ngày.</p>' +
+      stLine +
+      (ns === 'need-icon' ? '<p class="preview">Bạn đang mở bằng Safari. Bấm nút <b>Chia sẻ</b> → <b>Thêm vào MH chính</b>, rồi <b>mở app bằng icon</b> để bật được thông báo.</p>' : '') +
+      (ns === 'blocked' ? '<p class="preview err">Vào <b>Cài đặt</b> của điện thoại → <b>Thông báo</b> → <b>Quản Lý $ Của Kim</b> → bật <b>Cho phép thông báo</b> và <b>Kí hiệu</b>, rồi mở lại app.</p>' : '') +
+      '<button class="btn btn-primary nt-btn" data-act="push-on">' + icon('bell') + ' Bật thông báo trên máy này</button>' +
+      '<div class="nt-2"><button class="btn nt-test" data-act="push-test"' + (ns === 'on' ? '' : ' disabled') + '>Gửi thử thông báo</button>' +
+      '<button class="btn nt-off" data-act="push-off"' + (ns === 'on' ? '' : ' disabled') + '>Tắt trên máy này</button></div>' +
+      '<p class="hint">Thiết bị đang nhận thông báo (' + devs.length + ')' + (devs.length ? ': ' + devs.map(function (d) { return esc(d.ua || 'Thiết bị') + (d.addedAt ? ' – bật ngày ' + dmy(C.iso(new Date(d.addedAt).getFullYear(), new Date(d.addedAt).getMonth() + 1, new Date(d.addedAt).getDate())) : ''); }).join('; ') : '') + '.' +
+      (state.lastPushAt ? ' Lần gửi nhắc gần nhất: ' + fmtDT(state.lastPushAt) + '.' : ' Chưa gửi lần nào.') + '</p>' +
+      '<p class="hint">Muốn chắc chắn hơn: trên mỗi thẻ show bấm <b>“Thêm vào lịch nhắc”</b> → Lịch của điện thoại mở ra → bấm <b>Thêm tất cả</b>. Lịch sẽ tự nhắc trước 3 ngày, 1 ngày và 1 tiếng.</p></section>';
 
     var ys = yearsList();
-    h += '<section class="card glass"><h2>🗑️ Xóa dữ liệu theo năm</h2><p class="hint" style="margin-top:0">Xóa toàn bộ thu chi của năm đã chọn và các show không lặp lại của năm đó, cho nhẹ dung lượng. Nên tải file sao lưu trước.</p>' +
-      (ys.length ? '<div class="row-btns"><select class="inp" id="del-year" style="width:auto;min-width:130px">' + ys.map(function (y) { return '<option>' + y + '</option>'; }).join('') + '</select>' +
+    h += '<section class="card glass"><h2>🗑️ Xóa dữ liệu theo năm</h2><p class="hint" style="margin-top:0">Xóa toàn bộ thu chi của năm đã chọn và các show không lặp lại của năm đó, cho nhẹ dung lượng. Năm đã qua: gõ lại số năm để xác nhận. <b>Năm hiện tại: phải nhập lại mật khẩu.</b> Nên tải file sao lưu trước.</p>' +
+      (ys.length ? '<div class="row-btns"><select class="inp" id="del-year" style="width:auto;min-width:130px">' + ys.map(function (y) { return '<option value="' + y + '">' + y + (Number(y) >= new Date().getFullYear() ? ' (năm hiện tại)' : '') + '</option>'; }).join('') + '</select>' +
         '<button class="btn btn-red" data-act="del-year">' + icon('trash') + ' Xóa năm này</button></div>' : '<p class="hint">Chưa có dữ liệu.</p>') + '</section>';
 
     h += '<section class="card glass"><h2>📦 Sao lưu</h2><p class="hint" style="margin-top:0">Tải toàn bộ show, bầu show và thu chi về máy dưới dạng 1 file.</p><button class="btn" data-act="backup">Tải file sao lưu</button></section>';
@@ -1130,6 +1193,10 @@
       state.conn = mk('Không kết nối được máy chủ app', 'Máy chủ app', 'Không gọi được máy chủ', 'Nếu dùng link Render: chờ 30–60 giây cho máy chủ thức dậy rồi bấm Kiểm tra lại. Nếu vẫn lỗi, vào Vercel/Render xem dịch vụ có đang Live không');
     }).then(function () { out(); if (btn) busy(btn, false); });
   }
+  function myEndpoint() {
+    if (!navigator.serviceWorker) return Promise.resolve('');
+    return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (s) { return s ? s.endpoint : ''; }, function () { return ''; });
+  }
   function b64ToU8(b) {
     var p = '='.repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, '+').replace(/_/g, '/'));
     var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u;
@@ -1140,42 +1207,48 @@
     }
     Notification.requestPermission().then(function (p) {
       if (p !== 'granted') { toast('Bạn chưa cho phép thông báo. Vào Cài đặt của máy → Thông báo để mở lại.', 'err'); render(); return; }
-      if (!state.vapidPublic) { toast('Đã bật nhắc trong app. Làm thêm Bước 8 (HUONG-DAN.md) để được nhắc cả khi đóng app.'); localNotify(); render(); return; }
+      if (!state.vapidPublic) { toast('Máy chủ chưa tạo được khóa thông báo. Vào Cài đặt → Kiểm tra kết nối dữ liệu.', 'err'); localNotify(); render(); return; }
       busy(btn, true);
       return navigator.serviceWorker.ready.then(function (reg) {
         return reg.pushManager.getSubscription().then(function (sub) {
           return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(state.vapidPublic) });
         });
       }).then(function (sub) {
-        return api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON() }) });
+        return api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'subscribe', sub: sub.toJSON(), standalone: isStandalone() }) });
       }).then(function () {
         localStorage.setItem('kim_push', '1'); updateBadge(); toast('Máy này ĐANG BẬT thông báo. Ngày có sự kiện sẽ hiện số trên icon và nhắc bạn.'); render();
       }).catch(function (e) { toast('Chưa bật được: ' + e.message, 'err'); busy(btn, false); });
     });
   }
-  function getKeys(btn) {
-    busy(btn, true);
-    api('/api/keys').then(function (j) {
-      busy(btn, false);
-      var row = function (label, val) { return '<div class="lbl" style="margin-top:8px">' + label + '</div><div class="code">' + esc(val) + '</div><button class="btn btn-sm" data-act="copy" data-text="' + esc(val) + '">Sao chép</button>'; };
-      $('#keys-out').innerHTML = j.configured
-        ? '<p class="hint">✅ Đã cài khóa thông báo. Link hẹn giờ để dán vào cron-job.org:</p>' + row('Link hẹn giờ (cron)', j.cronUrl)
-        : row('VAPID_PUBLIC_KEY', j.publicKey) + row('VAPID_PRIVATE_KEY (giữ bí mật)', j.privateKey) + row('Link hẹn giờ (cron) — dùng sau khi Redeploy', j.cronUrl) +
-          '<p class="hint">Lưu ý: mỗi lần bấm “Lấy mã” sẽ ra cặp khóa mới. Chỉ dùng 1 cặp và dán cả 2 khóa cùng lúc.</p>';
-    }).catch(function (e) { busy(btn, false); toast(e.message, 'err'); });
-  }
+  // Năm đã qua: xóa như bình thường (gõ lại năm). Năm hiện tại: phải nhập lại mật khẩu.
   function delYear(btn) {
     var y = $('#del-year').value; if (!y) return;
-    if (!confirm('Xóa TOÀN BỘ thu chi năm ' + y + ' và các show không lặp lại của năm ' + y + '? Không thể khôi phục.')) return;
-    var typed = prompt('Gõ ' + y + ' để xác nhận xóa:');
-    if (typed !== y) return toast('Đã hủy, chưa xóa gì');
-    busy(btn, true);
-    api('/api/data', { method: 'POST', body: JSON.stringify({ action: 'deleteYear', year: y }) }).then(function () {
+    var cur = new Date().getFullYear();
+    if (Number(y) < cur) {
+      if (!confirm('Xóa TOÀN BỘ thu chi năm ' + y + ' và các show không lặp lại của năm ' + y + '? Không thể khôi phục.')) return;
+      var typed = prompt('Gõ ' + y + ' để xác nhận xóa:');
+      if (typed !== y) return toast('Đã hủy, chưa xóa gì');
+      return sendDelYear(y, '', btn);
+    }
+    openSheet('Xóa dữ liệu năm ' + y,
+      '<div class="cancel-warn"><b>Năm ' + y + ' là năm hiện tại.</b> Xóa sẽ mất toàn bộ thu chi năm nay và các show không lặp lại của năm nay. <b>Không thể khôi phục.</b></div>' +
+      '<form id="dy-form"><input type="hidden" id="dy-year" value="' + y + '"><div class="field"><label for="dy-pass">Nhập lại mật khẩu để xác nhận</label>' +
+      '<input class="inp lock-inp" id="dy-pass" type="password" autocomplete="current-password" placeholder="Mật khẩu"></div>' +
+      '<div class="row-btns"><button class="btn" type="button" data-act="close-sheet">Không xóa</button><button class="btn btn-red" type="submit">' + icon('trash') + ' Xóa dữ liệu năm ' + y + '</button></div></form>');
+    setTimeout(function () { var i = $('#dy-pass'); if (i) i.focus(); }, 320);
+  }
+  function doDelYear(btn) {
+    var p = $('#dy-pass').value; if (!p) { $('#dy-pass').focus(); return toast('Nhập mật khẩu', 'err'); }
+    sendDelYear($('#dy-year').value, p, btn);
+  }
+  function sendDelYear(y, password, btn) {
+    busy(btn, true, 'Đang xóa…');
+    api('/api/data', { method: 'POST', body: JSON.stringify({ action: 'deleteYear', year: y, password: password }) }).then(function () {
       delete state.entries[y]; state.years = state.years.filter(function (x) { return x !== y; });
-      state.fresh = {};
+      state.fresh = {}; closeSheet();
       return ensureYear(new Date().getFullYear());
     }).then(function () { toast('Đã xóa dữ liệu năm ' + y); render(); })
-      .catch(function (e) { busy(btn, false); toast(e.message, 'err'); });
+      .catch(function (e) { busy(btn, false); toast(e.message, 'err'); var i = $('#dy-pass'); if (i) { i.value = ''; i.focus(); } });
   }
   function backup(btn) {
     busy(btn, true);
@@ -1194,30 +1267,34 @@
   function doLogin(btn) {
     var i = $('#lg-pass'); if (!i) return;
     var p = i.value; if (!p) { i.focus(); return toast('Nhập mật khẩu', 'err'); }
-    if (btn) { btn.disabled = true; btn.textContent = 'Đang mở…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang kiểm tra…'; }
     fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.error || 'Không đăng nhập được'); return j; }); })
       .then(function (j) {
-        state.token = j.token; sessionStorage.setItem('kim_token', j.token);
-        state.fresh = {}; state.view = 'home';
-        $('#lock').innerHTML = '';
-        render();
-        return ensureYear(new Date().getFullYear()).then(function () { render(); syncPushFlag(); });
+        var first = !logged();
+        state.token = j.view; lsSet('kim_view', j.view);
+        state.edit = { t: j.edit, exp: Date.now() + (j.editMinutes || 20) * 60000 }; lsSet('kim_edit', JSON.stringify(state.edit));
+        var next = afterLogin; afterLogin = null;
+        closeSheet();
+        toast('Đã đăng nhập · được sửa trong ' + (j.editMinutes || 20) + ' phút');
+        if (first) { state.fresh = {}; render(); ensureYear(new Date().getFullYear()).then(function () { render(); syncPushFlag(); if (next) next(); }); }
+        else { renderHeader(); if (next) setTimeout(next, 280); }
       })
       .catch(function (e) {
-        if (btn) { btn.disabled = false; btn.textContent = 'Mở khóa'; }
-        var box = $('.lock-box'); if (box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
+        if (btn) { btn.disabled = false; btn.textContent = 'Đăng nhập'; }
+        var box = $('.sheet-panel'); if (box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); }
         if (i) { i.value = ''; i.focus(); }
         toast(e.message === 'Failed to fetch' ? 'Không kết nối được máy chủ' : e.message, 'err');
       });
   }
+  // Đăng xuất hẳn khỏi máy này (lần sau phải đăng nhập lại mới xem được)
   function logout(expired) {
-    state.token = ''; sessionStorage.removeItem('kim_token'); sessionStorage.removeItem('kim_cache');
-    localStorage.removeItem('kim_token'); localStorage.removeItem('kim_cache');
+    state.token = ''; state.edit = null; lsSet('kim_view', null); lsSet('kim_edit', null); lsSet('kim_cache', null);
     state.shows = []; state.baus = []; state.entries = {}; state.fresh = {}; state.years = []; state.storage = null;
     state.view = 'home';
     closeSheet();
-    if (expired) toast('Phiên đăng nhập đã hết, vui lòng nhập lại mật khẩu', 'err');
+    if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
+    if (expired) toast('Cần đăng nhập lại trên máy này', 'err');
     render();
   }
 
@@ -1231,13 +1308,19 @@
   }
 
   /* ================= Sự kiện ================= */
+  // Các nút cần phiên sửa (mật khẩu, 20 phút)
+  var EDIT_ACTS = {};
+  ['add-show', 'edit-show', 'del-show', 'show-money', 'confirm-show', 'cancel-show', 'reset-show', 'add-bau', 'edit-bau', 'del-bau',
+    'add-entry', 'edit-entry', 'del-entry', 'del-year'].forEach(function (k) { EDIT_ACTS[k] = 1; });
   var ACT = {
     'close-sheet': function () { closeSheet(); },
     tab: function (el) {
       var v = el.dataset.view;
       closeSheet(); state.view = v; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    'lock-now': function () { logout(); },
+    'lock-now': function () { if (confirm('Đăng xuất hẳn khỏi máy này? Lần sau phải nhập mật khẩu mới xem được dữ liệu.')) logout(); },
+    'end-edit': function () { endEdit(); },
+    login: function () { openLogin(); },
     stat: function (el) { state.statKey = el.dataset.k; render(); },
     'cal-pick': function (el) { state.calIdx = +el.dataset.i; renderHome(); },
     'open-show': function (el) { openShowDetail(el.dataset.id, el.dataset.d); },
@@ -1274,6 +1357,12 @@
     'edit-bau': function (el) { openBau(el.dataset.id); },
     'del-bau': function (el) { delBau(el.dataset.id); },
     'save-bau': function (el) { saveBau(el); },
+    'bau-add-contact': function () {
+      var box = $('#bf-contacts'), n = $$('.ct-row', box).length;
+      box.insertAdjacentHTML('beforeend', contactRow({}, n));
+      var rows = $$('.ct-row', box); $('.bf-cname', rows[rows.length - 1]).focus();
+    },
+    'bau-del-contact': function (el) { el.closest('.ct-row').remove(); renumberContacts(); },
     'money-prev': function () { state.moneyDate = C.addDays(state.moneyDate, -1); renderMoney(); },
     'money-next': function () { state.moneyDate = C.addDays(state.moneyDate, 1); renderMoney(); },
     'money-today': function () { state.moneyDate = todayISO(); renderMoney(); },
@@ -1294,11 +1383,25 @@
     'rep-goto': function (el) { state.rep.mode = 'month'; state.rep.m = +el.dataset.m; renderReport(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
     'push-on': function (el) { enablePush(el); },
     'push-test': function (el) {
-      busy(el, true);
-      api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'test' }) }).then(function (j) { toast('Đã gửi tới ' + j.sent + '/' + j.total + ' thiết bị'); })
+      busy(el, true, 'Đang gửi…');
+      myEndpoint().then(function (ep) {
+        return api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'test', endpoint: ep }) });
+      }).then(function () { toast('Đã gửi thử. Thông báo sẽ hiện sau vài giây.'); })
         .catch(function (e) { toast(e.message, 'err'); }).then(function () { busy(el, false); });
     },
-    'push-keys': function (el) { getKeys(el); },
+    'push-off': function (el) {
+      if (!confirm('Tắt thông báo trên máy này?')) return;
+      busy(el, true, 'Đang tắt…');
+      navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+        if (!sub) return;
+        var ep = sub.endpoint;
+        return sub.unsubscribe().then(function () { return api('/api/push', { method: 'POST', body: JSON.stringify({ action: 'unsubscribe', endpoint: ep }) }); });
+      }).then(function () {
+        lsSet('kim_push', null); if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
+        state.fresh = {}; toast('Đã tắt thông báo trên máy này');
+        return ensureYear(new Date().getFullYear());
+      }).catch(function (e) { toast(e.message, 'err'); }).then(function () { render(); });
+    },
     'check-conn': function (el) { checkConn(el); },
     copy: function (el) {
       var t = el.dataset.text;
@@ -1318,6 +1421,7 @@
     var fn = ACT[el.dataset.act];
     if (!fn) return;
     e.preventDefault();
+    if (EDIT_ACTS[el.dataset.act] && !canEdit()) { var keep = el; openLogin(function () { try { fn(keep); } catch (err) { console.error(err); } }); return; }
     try { fn(el, e); } catch (err) { console.error(err); toast(err.message || 'Có lỗi xảy ra', 'err'); }
   });
   document.addEventListener('input', function (e) {
@@ -1342,10 +1446,10 @@
   var hiddenAt = 0;
   document.addEventListener('submit', function (e) {
     if (e.target.id === 'lock-form') { e.preventDefault(); doLogin($('#lock-form button[type=submit]')); }
+    if (e.target.id === 'dy-form') { e.preventDefault(); doDelYear($('#dy-form button[type=submit]')); }
   });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-    if (logged() && hiddenAt && Date.now() - hiddenAt > 5 * 60000) { hiddenAt = 0; logout(); return; }
     if (document.visibilityState === 'visible' && logged()) {
       state.fresh = {};
       ensureYear(new Date().getFullYear()).then(render, function () { });
@@ -1357,7 +1461,7 @@
   if (logged()) loadCache();
   render();
   if (logged()) ensureYear(new Date().getFullYear()).then(render, function (e) { toast(e.message, 'err'); });
-  setInterval(function () { if (logged()) { renderHeader(); updateBadge(); localNotify(); } }, 60000);
+  setInterval(function () { renderHeader(); if (logged()) { updateBadge(); localNotify(); } }, 30000);
   setTimeout(localNotify, 3000);
   setTimeout(function () { if (logged()) syncPushFlag(); }, 2500);
 })();

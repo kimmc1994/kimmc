@@ -1,11 +1,13 @@
 // Đọc / ghi dữ liệu: show, bầu show, thu chi (lưu trong kho GitHub riêng tư)
 const gh = require('./_lib/gh');
-const { requireAuth } = require('./_lib/auth');
+const { requireAuth, checkPassword } = require('./_lib/auth');
+const push = require('./_lib/push');
 
 const LIMIT = 1024 * 1024 * 1024; // mốc hiển thị 1 GB (GitHub khuyên kho < 1 GB)
 const DEF_CFG = () => ({ version: 1, shows: [], bauShows: [], pushSubs: [], sent: {} });
 const DEF_TC = y => ({ version: 1, year: Number(y), entries: [] });
-const CATS = ['hottoc', 'massage', 'botiem', 'khac', 'chi'];
+// tiemtoc = Tiền tiệm tóc (gộp hớt tóc + massage). hottoc / massage: dữ liệu cũ, vẫn được tính vào tiền tiệm tóc
+const CATS = ['tiemtoc', 'hottoc', 'massage', 'botiem', 'khac', 'chi'];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 const str = (v, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -47,7 +49,10 @@ function cleanShow(s) {
 function cleanBau(b) {
   b = b || {};
   if (!id(b.id) || !str(b.name)) throw Object.assign(new Error('Dữ liệu bầu show không hợp lệ'), { code: 400 });
-  return { id: id(b.id), name: str(b.name, 120), phone: str(b.phone, 30) };
+  let contacts = Array.isArray(b.contacts) ? b.contacts : [];
+  contacts = contacts.map(c => ({ name: str((c || {}).name, 80), phone: str((c || {}).phone, 30) })).filter(c => c.name || c.phone).slice(0, 20);
+  if (!contacts.length && str(b.phone)) contacts = [{ name: '', phone: str(b.phone, 30) }];
+  return { id: id(b.id), name: str(b.name, 120), contacts, phone: contacts[0] ? contacts[0].phone : '' };
 }
 function applyOp(arr, action, x) {
   const key = action === 'delete' ? x : x.id;
@@ -59,17 +64,19 @@ const storageInfo = files => ({ used: files.reduce((a, f) => a + (f.size || 0), 
 
 module.exports = async (req, res) => {
   if (!gh.configured()) return res.status(500).json({ error: 'Chưa cài GITHUB_TOKEN và GITHUB_REPO trong Environment Variables của Vercel/Render (xem HUONG-DAN.md)' });
-  if (!requireAuth(req, res)) return;
+  if (!requireAuth(req, res, req.method === 'GET' ? 'v' : 'e')) return;
   try {
     if (req.method === 'GET') {
       const year = /^\d{4}$/.test(req.query.year || '') ? req.query.year : String(new Date().getFullYear());
-      const [files, cfg, tc] = await Promise.all([gh.listData(), gh.getFile('config.json'), gh.getFile(`thuchi-${year}.json`)]);
+      const [files, cfg, tc, keys] = await Promise.all([gh.listData(), gh.getFile('config.json'), gh.getFile(`thuchi-${year}.json`), push.getKeys().catch(() => null)]);
       const c = cfg.data || DEF_CFG();
       const years = files.map(f => (f.name.match(/^thuchi-(\d{4})\.json$/) || [])[1]).filter(Boolean);
       return res.status(200).json({
         year, years, shows: c.shows || [], bauShows: c.bauShows || [],
         entries: (tc.data && tc.data.entries) || [],
-        storage: storageInfo(files), vapidPublic: process.env.VAPID_PUBLIC_KEY || null
+        storage: storageInfo(files), vapidPublic: keys ? keys.publicKey : null,
+        pushDevices: (c.pushSubs || []).map(x => ({ ua: x.ua || '', addedAt: x.addedAt || 0, id: String(x.endpoint || '').slice(-12) })),
+        lastPushAt: c.lastPushAt || 0
       });
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Phương thức không hỗ trợ' });
@@ -78,6 +85,9 @@ module.exports = async (req, res) => {
     if (b.action === 'deleteYear') {
       const y = String(b.year || '');
       if (!/^\d{4}$/.test(y)) return res.status(400).json({ error: 'Năm không hợp lệ' });
+      // Năm hiện tại (hoặc năm sau) phải nhập lại mật khẩu
+      const vnYear = new Date(Date.now() + 7 * 3600e3).getUTCFullYear();
+      if (Number(y) >= vnYear && !checkPassword(b.password)) return res.status(403).json({ error: 'Sai mật khẩu, chưa xóa dữ liệu năm ' + y });
       await gh.deleteFile(`thuchi-${y}.json`, `Xóa thu chi năm ${y}`);
       await gh.updateFile('config.json', DEF_CFG, c => {
         c.shows = (c.shows || []).filter(s => !((s.repeat || 'none') === 'none' && String(s.date).startsWith(y + '-')));

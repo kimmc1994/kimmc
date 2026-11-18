@@ -488,7 +488,7 @@ h2 { font-weight: 800; }
 .h-lun { border-left: 1.5px solid var(--hair); }
 .h-lbl { font-size: 14px; font-weight: 800; color: var(--text3); letter-spacing: .02em; }
 .h-big { font-size: 64px; line-height: 1; font-weight: 800; letter-spacing: -.04em; color: var(--blue); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
-.h-big.lunar { color: #C2410C; }
+.h-big.lunar { color: #ff0000; }
 .h-big.sun, .h-wd.sun { color: #E11D48; }
 .h-wd { font-size: 20px; font-weight: 800; }
 .h-my { font-size: 16px; font-weight: 600; color: var(--text2); }
@@ -628,3 +628,73 @@ h2 { font-weight: 800; }
   .nt-box { background: rgba(30, 58, 138, .45); } .nt-body { color: #BFDBFE; } .nt-status { color: #FCD34D; } .nt-status b { color: #FCA5A5; }
   .nt-ok { color: #86EFAC; }
 }
+
+/* ================= Bản 8 ================= */
+/* Tên show màu xanh lá đậm, địa điểm đỏ đậm to rõ */
+.ss-name, .sc-body h3, .cf-name { color: #066b00; }
+.ss-place { font-size: 16px; font-weight: 800; color: #ff0000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info .place { color: #ff0000; font-weight: 800; font-size: 16px; }
+.info .place .ic { color: #ff0000; }
+@media (prefers-color-scheme: dark) {
+  .ss-name, .sc-body h3, .cf-name { color: #4ADE80; }
+  .ss-place, .info .place, .info .place .ic { color: #FF6B6B; }
+  .h-big.lunar { color: #FF6B6B; }
+}
+
+/* Nút Thêm Thu Chi màu đỏ */
+.btn-add-money { background: linear-gradient(135deg, #EF4444, #DC2626); color: #fff; border: 0; box-shadow: 0 4px 12px rgba(220, 38, 38, .3); }
+
+/* Nút chuyển mục có 2 màu khác nhau */
+.color-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ct { min-height: 50px; border-radius: 16px; font-weight: 800; font-size: 16px; border: 2px solid transparent; background: var(--glass-strong); color: var(--text2); }
+.ct-show { border-color: rgba(220, 38, 38, .35); color: #B91C1C; }
+.ct-show.on { background: linear-gradient(135deg, #F87171, #DC2626); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(220, 38, 38, .3); }
+.ct-bau { border-color: rgba(217, 119, 6, .4); color: #B45309; }
+.ct-bau.on { background: linear-gradient(135deg, #FBBF24, #D97706); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(217, 119, 6, .3); }
+.ct-month { border-color: rgba(37, 99, 235, .35); color: #1D4ED8; }
+.ct-month.on { background: linear-gradient(135deg, #60A5FA, #2563EB); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(37, 99, 235, .3); }
+.ct-year { border-color: rgba(124, 58, 237, .35); color: #6D28D9; }
+.ct-year.on { background: linear-gradient(135deg, #A78BFA, #7C3AED); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(124, 58, 237, .3); }
+@media (prefers-color-scheme: dark) { .ct-show { color: #FCA5A5; } .ct-bau { color: #FCD34D; } .ct-month { color: #93C5FD; } .ct-year { color: #C4B5FD; } }
+
+/* Bầu show nhiều liên hệ */
+.ct-row { border: 1px solid var(--hair); border-radius: 18px; padding: 10px 12px 2px; margin-bottom: 10px; background: var(--glass-lite); }
+.ct-n { display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--text2); margin-bottom: 6px; }
+.ct-del { border: 0; background: var(--fill); width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--red-ink); }
+.ct-del .ic { width: 16px; height: 16px; }
+.btn-add-phone { background: rgba(34, 197, 94, .15); color: #15803D; }
+.bau-entry { align-items: flex-start; }
+.bau-ct { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 0; border-top: 1px dashed var(--hair); font-size: 15px; }
+.bau-ct:first-of-type { margin-top: 6px; }
+
+/* Đăng nhập trên thanh trên */
+.edit-pill { border: 0; min-height: 40px; padding: 0 12px; border-radius: 999px; font-weight: 800; font-size: 14.5px; display: inline-flex; align-items: center; gap: 5px; background: var(--fill); color: var(--text); white-space: nowrap; }
+.edit-pill .ic { width: 17px; height: 17px; }
+.edit-pill.on { background: rgba(34, 197, 94, .18); color: #15803D; }
+@media (prefers-color-scheme: dark) { .edit-pill.on { color: #86EFAC; } }
+.brand h1 { font-size: 17px; }
+.sheet-panel.shake { animation: shake .35s; }
+
+/* Thẻ thông báo trong Cài đặt */
+.nt-st { font-size: 18px; font-weight: 800; margin: 6px 0 10px; }
+.nt-st.on { color: #15803D; }
+.nt-st.off { color: #B45309; }
+.nt-card .nt-btn { width: 100%; background: linear-gradient(135deg, #3B82F6, #6366F1); color: #fff; }
+.nt-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.nt-test { background: rgba(59, 130, 246, .12); color: #1D4ED8; }
+.nt-off { background: rgba(254, 226, 226, .8); color: #DC2626; border: 1.5px solid rgba(220, 38, 38, .4); }
+@media (prefers-color-scheme: dark) { .nt-st.on { color: #86EFAC; } .nt-st.off { color: #FCD34D; } .nt-test { color: #93C5FD; } .nt-off { background: transparent; color: #FCA5A5; } }
+.nt-2 .btn { min-width: 0; white-space: normal; padding: 6px 8px; line-height: 1.2; }
+
+/* Bầu show gọn trên thẻ show: tên CTy 1 lần, mỗi người 1 dòng có nút Gọi / Zalo */
+.bau-box { margin: 8px 0; padding: 10px 12px; border-radius: 16px; background: rgba(217, 119, 6, .09); border: 1px solid rgba(217, 119, 6, .25); }
+.bau-title { display: flex; gap: 8px; align-items: flex-start; font-size: 15.5px; color: var(--text2); margin-bottom: 4px; }
+.bau-title b { color: var(--text); }
+.bau-title .ic { width: 18px; height: 18px; margin-top: 2px; color: #D97706; }
+.bau-line { display: flex; align-items: center; gap: 8px; padding: 5px 0 5px 26px; }
+.bau-who { flex: 1; min-width: 0; font-weight: 800; font-size: 16px; overflow-wrap: anywhere; }
+.ib { width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center; color: #fff; text-decoration: none; }
+.ib .ic { width: 20px; height: 20px; }
+.ib-call { background: #2FB350; }
+.ib-zalo { background: #0068FF; }
+.bau-who { flex: 0 1 auto; min-width: 64px; margin-right: 4px; }

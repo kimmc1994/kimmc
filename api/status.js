@@ -2,7 +2,7 @@
 const { requireAuth } = require('./_lib/auth');
 
 module.exports = async (req, res) => {
-  if (!requireAuth(req, res)) return;
+  if (!requireAuth(req, res, 'v')) return;
   const t0 = Date.now();
   const checks = [];
   const add = (name, ok, detail, fix) => checks.push({ name, ok, detail, fix: ok ? '' : (fix || '') });
@@ -57,7 +57,8 @@ module.exports = async (req, res) => {
       add('Kết nối tới GitHub', false, 'Không gọi được GitHub: ' + e.message, 'Thử lại sau vài phút');
     }
   }
-  const vapid = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
-  add('Khóa thông báo (không bắt buộc)', true, vapid ? 'Đã cài' : 'Chưa cài — chỉ nhắc khi đang mở app (xem HUONG-DAN.md Bước 8)');
+  let keyOk = false;
+  try { keyOk = !!(await require('./_lib/push').getKeys()); } catch (e) { }
+  add('Khóa thông báo', keyOk, keyOk ? 'Sẵn sàng (tự tạo, lưu trong kho dữ liệu)' : 'Chưa tạo được', 'Kiểm tra quyền ghi dữ liệu ở dòng trên');
   res.status(200).json({ ok: checks.every(c => c.ok), host, ms: Date.now() - t0, checks, at: Date.now() });
 };

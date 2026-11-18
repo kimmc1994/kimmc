@@ -1,4 +1,4 @@
-const { checkPassword, makeToken } = require('./_lib/auth');
+const { checkPassword, makeToken, EDIT_MINUTES } = require('./_lib/auth');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Chỉ nhận POST' });
@@ -7,5 +7,5 @@ module.exports = async (req, res) => {
     await new Promise(r => setTimeout(r, 700)); // chống dò mật khẩu
     return res.status(401).json({ error: 'Sai mật khẩu' });
   }
-  res.status(200).json({ token: makeToken() });
+  res.status(200).json({ view: makeToken('v'), edit: makeToken('e'), editMinutes: EDIT_MINUTES });
 };
