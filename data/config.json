@@ -59,6 +59,32 @@
    "overrides": {},
    "createdAt": 1794961656272,
    "updatedAt": 1794961725679
+  },
+  {
+   "id": "mwle01atgvuwd",
+   "name": "tiệc cưới -phan thiết",
+   "host": "",
+   "bauId": "mwle01at11x2g",
+   "bauName": "mc ngoc cảnh",
+   "address": "cảng phan thiết",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-11-28",
+   "lunar": {
+    "d": 20,
+    "m": 10,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "17:00",
+   "repeat": "none",
+   "received": 600000,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1794961950870,
+   "updatedAt": 1794961952956
   }
  ],
  "bauShows": [
