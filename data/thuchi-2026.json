@@ -28,6 +28,15 @@
    "amount": 100000,
    "note": "",
    "updatedAt": 1794659517980
+  },
+  {
+   "id": "mwldedkrjmtya",
+   "date": "2026-11-16",
+   "type": "thu",
+   "cat": "hottoc",
+   "amount": 230000,
+   "note": "",
+   "updatedAt": 1794960940347
   }
  ]
 }
