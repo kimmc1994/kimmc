@@ -28,6 +28,10 @@
   var ICONS = {
     cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>',
+    bank: '<path d="M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    share: '<path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+    qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v7h-4M17 21v-3"/>',
     wallet: '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',
     chart: '<path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/>',
     gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
@@ -305,13 +309,14 @@
   }
 
   /* ================= Vẽ giao diện ================= */
-  var TABS = [['home', 'cal', 'Trang chủ'], ['shows', 'mic', 'Show'], ['money', 'wallet', 'Thu chi'], ['report', 'chart', 'Báo cáo'], ['settings', 'gear', 'Cài đặt']];
+  var TABS = [['home', 'cal', 'Trang chủ'], ['shows', 'mic', 'Show'], ['money', 'wallet', 'Thu chi'], ['report', 'chart', 'Báo cáo'], ['stk', 'bank', 'Số TK'], ['settings', 'gear', 'Cài đặt']];
   function render() {
     $('#tabbar').innerHTML = TABS.map(function (t) {
       return '<button class="tab' + (state.view === t[0] ? ' active' : '') + '" data-act="tab" data-view="' + t[0] + '" aria-label="' + t[2] + '">' + icon(t[1]) + '<span>' + t[2] + '</span></button>';
     }).join('');
     renderHeader();
     $$('.view').forEach(function (el) { el.hidden = el.id !== 'view-' + state.view; });
+    if (state.view === 'stk') { renderBanks(); updateBadge(); return; }
     if (!logged() && state.view !== 'home' && state.view !== 'shows') { $('#view-' + state.view).innerHTML = loginCard(); return; }
     if (state.view === 'home') renderHome();
     else if (state.view === 'shows') renderShows();
@@ -933,6 +938,133 @@
     toast('Đang mở Lịch — bấm “Thêm tất cả” để lưu 3 lần nhắc');
   }
 
+  /* ---------- Số tài khoản ngân hàng ---------- */
+  // Xem: ai cũng xem được (kể cả người được gửi link). Thêm / sửa / xóa: cần đăng nhập.
+  var shareMode = /(^|[?&])stk(=|&|$)/.test(location.search.slice(1)) || location.hash === '#stk';
+  function loadBanks(force) {
+    if (state.banks && !force) return Promise.resolve();
+    return fetch('/api/banks').then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Lỗi ' + r.status); return j; }); })
+      .then(function (j) { state.banks = j.banks || []; lsSet('kim_banks', JSON.stringify(state.banks)); })
+      .catch(function (e) { if (!state.banks) state.banks = []; toast('Chưa tải được số tài khoản: ' + e.message, 'err'); });
+  }
+  function bankText(b) {
+    return ['Ngân hàng: ' + b.bank, b.owner ? 'Chủ tài khoản: ' + b.owner : '', 'Số tài khoản: ' + b.number, b.branch ? 'Chi nhánh: ' + b.branch : '', b.note ? 'Nội dung: ' + b.note : ''].filter(Boolean).join('\n');
+  }
+  function copyText(t, msg) {
+    var done = function () { toast(msg || 'Đã sao chép'); };
+    var fallback = function () {
+      var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length);
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { }
+      ta.remove(); if (ok) done(); else prompt('Sao chép đoạn này:', t);
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+  }
+  function renderBanks() {
+    var el = $('#view-stk');
+    if (!state.banks) { el.innerHTML = '<p class="empty-state">Đang tải…</p>'; loadBanks().then(function () { if (state.view === 'stk') renderBanks(); }); return; }
+    var edit = logged() && !shareMode;
+    var h = '<section class="card glass bank-head"><div><h2>' + icon('bank') + ' Số tài khoản</h2><p class="hint" style="margin:0">Bấm <b>Sao chép</b> để dán vào app ngân hàng, hoặc chạm vào mã QR để quét / lưu ảnh.</p></div>' +
+      '<div class="row-btns">' + (shareMode ? '' : '<button class="btn btn-sm btn-share" data-act="share-banks">' + icon('share') + ' Chia sẻ link</button>') +
+      (edit ? '<button class="btn btn-sm btn-primary" data-act="add-bank">' + icon('plus') + ' Thêm Ngân Hàng</button>' : '') + '</div></section>';
+    if (!state.banks.length) h += '<div class="card glass empty-state">' + (edit ? 'Chưa có tài khoản nào. Bấm “Thêm Ngân Hàng” để nhập.' : 'Chưa có thông tin tài khoản.') + '</div>';
+    h += '<div class="bank-list">' + state.banks.map(function (b) {
+      return '<article class="bank-card glass">' +
+        '<div class="bk-top"><div class="bk-name">' + esc(b.bank) + '</div>' +
+        (edit ? '<div class="row-btns"><button class="icon-btn sm" data-act="edit-bank" data-id="' + b.id + '" aria-label="Sửa">' + icon('edit') + '</button>' +
+          '<button class="icon-btn sm danger" data-act="del-bank" data-id="' + b.id + '" aria-label="Xóa">' + icon('trash') + '</button></div>' : '') + '</div>' +
+        '<div class="bk-row"><span>Chủ tài khoản</span><b>' + esc(b.owner || '—') + '</b></div>' +
+        '<div class="bk-row bk-num"><span>Số tài khoản</span><b>' + esc(b.number) + '</b>' +
+        '<button class="btn btn-sm bk-copy" data-act="copy-stk" data-id="' + b.id + '">' + icon('copy') + ' Sao chép STK</button></div>' +
+        (b.branch ? '<div class="bk-row"><span>Chi nhánh</span><b>' + esc(b.branch) + '</b></div>' : '') +
+        (b.note ? '<div class="bk-row"><span>Ghi chú</span><b>' + esc(b.note) + '</b></div>' : '') +
+        (b.qr ? '<button class="bk-qr" data-act="qr-zoom" data-id="' + b.id + '" aria-label="Phóng to mã QR"><img src="' + b.qr + '" alt="Mã QR chuyển khoản ' + esc(b.bank) + '"><span>' + icon('qr') + ' Chạm để phóng to / lưu ảnh QR</span></button>' : '') +
+        '<button class="btn bk-all" data-act="copy-bank" data-id="' + b.id + '">' + icon('copy') + ' Sao chép toàn bộ thông tin</button></article>';
+    }).join('') + '</div>';
+    el.innerHTML = h;
+  }
+  function bankById(id) { return (state.banks || []).find(function (x) { return x.id === id; }); }
+  function openQr(id) {
+    var b = bankById(id); if (!b || !b.qr) return;
+    var ext = /^data:image\/png/.test(b.qr) ? 'png' : 'jpg';
+    openSheet('Mã QR chuyển khoản',
+      '<div class="qr-big"><img src="' + b.qr + '" alt="Mã QR ' + esc(b.bank) + '"></div>' +
+      '<div class="qr-info"><b>' + esc(b.bank) + '</b><br>' + esc(b.owner || '') + '<br><span class="qr-num">' + esc(b.number) + '</span></div>' +
+      '<p class="hint">Cách chuyển khoản: mở app ngân hàng → chọn <b>Quét QR</b> → quét mã này. Nếu đang xem trên chính điện thoại của bạn: bấm <b>Lưu ảnh QR</b> (hoặc giữ ngón tay lên ảnh → <b>Lưu vào Ảnh</b>), rồi trong app ngân hàng chọn <b>Quét QR</b> → <b>Chọn ảnh</b>.</p>',
+      '<a class="btn" href="' + b.qr + '" download="QR-' + esc(b.bank.replace(/[^\w]+/g, '-')) + '.' + ext + '">' + icon('share') + ' Lưu ảnh QR</a>' +
+      '<button class="btn btn-primary" data-act="copy-stk" data-id="' + b.id + '">' + icon('copy') + ' Sao chép STK</button>');
+  }
+  function openBank(id) {
+    var b = id ? bankById(id) : null;
+    openSheet(b ? 'Sửa ngân hàng' : 'Thêm Ngân Hàng',
+      '<input type="hidden" id="bk-id" value="' + (b ? b.id : '') + '">' +
+      '<div class="field"><label for="bk-bank">Tên Ngân Hàng *</label><input class="inp" id="bk-bank" maxlength="120" placeholder="VD: Vietcombank" value="' + esc(b ? b.bank : '') + '"></div>' +
+      '<div class="field"><label for="bk-owner">Chủ Tài Khoản</label><input class="inp" id="bk-owner" maxlength="120" placeholder="VD: NGUYEN VAN KIM" value="' + esc(b ? b.owner : '') + '" style="text-transform:uppercase"></div>' +
+      '<div class="field"><label for="bk-number">Số Tài Khoản *</label><input class="inp" id="bk-number" maxlength="40" inputmode="numeric" placeholder="VD: 0123456789" value="' + esc(b ? b.number : '') + '"></div>' +
+      '<div class="field"><label for="bk-branch">Chi nhánh (không bắt buộc)</label><input class="inp" id="bk-branch" maxlength="120" value="' + esc(b ? b.branch : '') + '"></div>' +
+      '<div class="field"><label for="bk-note">Ghi chú (không bắt buộc)</label><input class="inp" id="bk-note" maxlength="200" placeholder="VD: Nội dung CK: tên + ngày tiệc" value="' + esc(b ? b.note : '') + '"></div>' +
+      '<div class="field"><span class="lbl">Mã QR chuyển khoản (không bắt buộc)</span>' +
+      '<input type="hidden" id="bk-qr" value="' + (b && b.qr ? 'keep' : '') + '">' +
+      '<div id="bk-qr-prev" class="qr-prev">' + (b && b.qr ? '<img src="' + b.qr + '" alt="">' : '<span class="hint">Chưa có ảnh QR</span>') + '</div>' +
+      '<div class="row-btns"><label class="btn btn-sm btn-share" for="bk-file">' + icon('qr') + ' Chọn ảnh QR</label>' +
+      '<input type="file" id="bk-file" accept="image/*" hidden>' +
+      '<button type="button" class="btn btn-sm danger" data-act="bank-qr-remove"' + (b && b.qr ? '' : ' hidden') + '>Bỏ ảnh QR</button></div>' +
+      '<div class="hint">Mở app ngân hàng → mục <b>Mã QR nhận tiền</b> → lưu ảnh về máy, rồi bấm <b>Chọn ảnh QR</b>. Không có ảnh thì phần QR sẽ ẩn.</div></div>',
+      '<button class="btn" data-act="close-sheet">Hủy</button><button class="btn btn-primary" data-act="save-bank">Lưu</button>');
+    state.bankQr = b && b.qr ? b.qr : '';
+  }
+  // Thu nhỏ ảnh QR trên máy trước khi lưu (giữ nét, nhẹ)
+  function readQr(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) return reject(new Error('Chọn 1 file ảnh'));
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var max = 720, k = Math.min(1, max / Math.max(img.width, img.height));
+          var c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = k < 1; g.drawImage(img, 0, 0, c.width, c.height);
+          var out = c.toDataURL('image/png');
+          if (out.length > 420 * 1024) out = c.toDataURL('image/jpeg', 0.92);
+          if (out.length > 420 * 1024) out = c.toDataURL('image/jpeg', 0.8);
+          if (out.length > 440 * 1024) return reject(new Error('Ảnh quá lớn, hãy cắt sát mã QR rồi chọn lại'));
+          resolve(out);
+        };
+        img.onerror = function () { reject(new Error('Không đọc được ảnh')); };
+        img.src = fr.result;
+      };
+      fr.onerror = function () { reject(new Error('Không đọc được ảnh')); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function saveBank(btn) {
+    var bank = $('#bk-bank').value.trim(), number = $('#bk-number').value.trim();
+    if (!bank) { $('#bk-bank').focus(); return toast('Nhập tên ngân hàng', 'err'); }
+    if (!number) { $('#bk-number').focus(); return toast('Nhập số tài khoản', 'err'); }
+    var item = { id: $('#bk-id').value || uid(), bank: bank, owner: $('#bk-owner').value.trim().toUpperCase(), number: number,
+      branch: $('#bk-branch').value.trim(), note: $('#bk-note').value.trim(), qr: state.bankQr || '' };
+    busy(btn, true);
+    api('/api/banks', { method: 'POST', body: JSON.stringify({ action: 'upsert', item: item }) }).then(function () {
+      state.banks = state.banks || [];
+      var i = state.banks.findIndex(function (x) { return x.id === item.id; });
+      if (i >= 0) state.banks[i] = item; else state.banks.push(item);
+      closeSheet(); toast('Đã lưu: ' + bank); renderBanks();
+    }).catch(function (e) { busy(btn, false); toast(e.message, 'err'); });
+  }
+  function delBank(id) {
+    var b = bankById(id); if (!b) return;
+    if (!confirm('Xóa tài khoản ' + b.bank + ' – ' + b.number + '?')) return;
+    api('/api/banks', { method: 'POST', body: JSON.stringify({ action: 'delete', id: id }) }).then(function () {
+      state.banks = state.banks.filter(function (x) { return x.id !== id; }); toast('Đã xóa'); renderBanks();
+    }).catch(function (e) { toast(e.message, 'err'); });
+  }
+  function shareBanks() {
+    var url = location.origin + '/?stk';
+    var text = 'Thông tin chuyển khoản' + (state.banks && state.banks.length ? ':\n\n' + state.banks.map(bankText).join('\n\n') : '');
+    if (navigator.share) navigator.share({ title: 'Thông tin chuyển khoản', text: text, url: url }).catch(function () { });
+    else copyText(url, 'Đã sao chép link. Dán gửi cho khách qua Zalo / Messenger.');
+  }
+
   /* ---------- Bầu show ---------- */
   // Danh sách liên hệ của bầu show (hỗ trợ dữ liệu cũ chỉ có 1 số phone)
   function contactsOf(b) {
@@ -1331,12 +1463,12 @@
   // Các nút cần phiên sửa (mật khẩu, 20 phút)
   var EDIT_ACTS = {};
   ['add-show', 'edit-show', 'del-show', 'show-money', 'confirm-show', 'cancel-show', 'reset-show', 'add-bau', 'edit-bau', 'del-bau',
-    'add-entry', 'edit-entry', 'del-entry', 'del-year'].forEach(function (k) { EDIT_ACTS[k] = 1; });
+    'add-entry', 'edit-entry', 'del-entry', 'del-year', 'add-bank', 'edit-bank', 'del-bank'].forEach(function (k) { EDIT_ACTS[k] = 1; });
   var ACT = {
     'close-sheet': function () { closeSheet(); },
     tab: function (el) {
       var v = el.dataset.view;
-      closeSheet(); state.view = v; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      closeSheet(); state.view = v; if (v === 'stk') { loadBanks(true).then(function () { if (state.view === 'stk') renderBanks(); }); } render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     logout: function () {
       if (!confirm('Đăng xuất khỏi máy này?\n\nPhần Thu chi, Báo cáo, Cài đặt, số điện thoại và tiền show sẽ ẩn cho tới khi đăng nhập lại. Lịch show vẫn xem được.')) return;
@@ -1426,6 +1558,15 @@
       }).catch(function (e) { toast(e.message, 'err'); }).then(function () { render(); });
     },
     'check-conn': function (el) { checkConn(el); },
+    'add-bank': function () { openBank(); },
+    'edit-bank': function (el) { openBank(el.dataset.id); },
+    'del-bank': function (el) { delBank(el.dataset.id); },
+    'save-bank': function (el) { saveBank(el); },
+    'bank-qr-remove': function (el) { state.bankQr = ''; $('#bk-qr-prev').innerHTML = '<span class="hint">Chưa có ảnh QR</span>'; el.hidden = true; },
+    'copy-stk': function (el) { var b = bankById(el.dataset.id); if (b) { var n = b.number.replace(/[\s.-]/g, ''); copyText(n, 'Đã sao chép số tài khoản ' + n); } },
+    'copy-bank': function (el) { var b = bankById(el.dataset.id); if (b) copyText(bankText(b), 'Đã sao chép toàn bộ thông tin ' + b.bank); },
+    'qr-zoom': function (el) { openQr(el.dataset.id); },
+    'share-banks': function () { shareBanks(); },
     copy: function (el) {
       var t = el.dataset.text;
       (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Đã sao chép'); }, function () { prompt('Sao chép đoạn này:', t); });
@@ -1461,6 +1602,13 @@
     if (t.closest && t.closest('#show-form')) updateShowPreview();
     if (t.id === 'money-date' && t.value) { state.moneyDate = t.value; renderMoney(); }
     if (t.id === 'ef-date' && t.value) { $('#ef-lunar').textContent = 'Âm lịch: ' + lunarTxt(C.toLunar(t.value)); }
+    if (t.id === 'bk-file' && t.files && t.files[0]) {
+      readQr(t.files[0]).then(function (d) {
+        state.bankQr = d; $('#bk-qr-prev').innerHTML = '<img src="' + d + '" alt="">';
+        var rm = $('[data-act="bank-qr-remove"]'); if (rm) rm.hidden = false;
+      }, function (e) { toast(e.message, 'err'); });
+      t.value = '';
+    }
     if (t.id === 'lg-show') { $('#lg-pass').type = t.checked ? 'text' : 'password'; }
   });
   document.addEventListener('keydown', function (e) {
@@ -1482,6 +1630,16 @@
 
   /* ================= Khởi động ================= */
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () { });
+  if (shareMode) {
+    // Trang chia sẻ cho khách: chỉ hiện số tài khoản, không có phần nào khác của app
+    document.body.classList.add('share-mode'); document.title = 'Thông tin chuyển khoản';
+    var h1 = $('.brand h1'); if (h1) h1.textContent = 'Thông tin chuyển khoản';
+    state.view = 'stk';
+    try { var bc = JSON.parse(lsGet('kim_banks') || 'null'); if (bc) state.banks = bc; } catch (e) { }
+    $$('.view').forEach(function (el) { el.hidden = el.id !== 'view-stk'; });
+    renderBanks(); loadBanks(true).then(renderBanks);
+    return;
+  }
   if (logged()) loadCache();
   render();
   if (logged()) ensureYear(new Date().getFullYear()).then(render, function (e) { toast(e.message, 'err'); });

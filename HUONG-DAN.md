@@ -210,6 +210,13 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 - **Trang chủ, lịch show**: tên show màu xanh lá, **địa điểm chữ đỏ đậm** ngay bên dưới. Không hiện tên bầu show (bấm vào show mới thấy).
 - **Thu chi**: bấm nút đỏ **Thêm Thu Chi**, hoặc chọn ngày → bấm ô **Tiền tiệm tóc** / Tiền bo tiệm tóc / Tiền khác / Chi tiêu. (Hớt tóc và massage đã gộp thành **Tiền tiệm tóc**; số cũ vẫn được cộng vào đây.) ✏️ để sửa, 🗑️ để xóa. Cuối trang cũng có thống kê hôm nay / tuần / tháng.
 - **Báo cáo**: nút xanh **Theo tháng**, nút tím **Theo năm**. Có **doanh thu tiệm tóc**, tiền bo tiệm tóc riêng, thu show, thu khác, chi và tiết kiệm được bao nhiêu.
+- **Tab Số TK** (số tài khoản ngân hàng):
+  - Ai mở app cũng xem được, không cần đăng nhập.
+  - Mỗi ngân hàng hiện **Tên Ngân Hàng**, **Chủ Tài Khoản**, **Số Tài Khoản** (chữ đỏ to) và **mã QR** (nếu có; không có thì ẩn).
+  - Nút **Sao chép STK** chép riêng số tài khoản (tự bỏ khoảng trắng). Nút **Sao chép toàn bộ thông tin** chép cả tên ngân hàng, chủ tài khoản, số tài khoản.
+  - Chạm vào **mã QR** để phóng to cho người khác quét, hoặc bấm **Lưu ảnh QR** để lưu về máy rồi trong app ngân hàng chọn **Quét QR → Chọn ảnh**.
+  - **Thêm Ngân Hàng** (cần đăng nhập): nhập Tên Ngân Hàng, Chủ Tài Khoản, Số Tài Khoản, chi nhánh và ghi chú (không bắt buộc). Bấm **Chọn ảnh QR** để thêm mã QR (lấy trong app ngân hàng ở mục *Mã QR nhận tiền* → lưu ảnh). Bấm ✏️ để sửa, 🗑️ để xóa.
+  - **Chia sẻ link**: gửi cho khách qua Zalo / Messenger. Khách mở link (**kim1994.vercel.app/?stk**) chỉ thấy trang **Thông tin chuyển khoản**, không thấy lịch show hay phần nào khác của app.
 - **Cài đặt**: thanh dung lượng, thông báo, xóa dữ liệu theo năm, tải file sao lưu.
 - **Xóa dữ liệu theo năm**: năm đã qua thì gõ lại số năm để xác nhận. **Năm hiện tại phải nhập lại mật khẩu** mới xóa được.
 - **Xác nhận show hoàn thành**: khi show đã qua giờ diễn, app **không nhắc nữa** mà hiện khung xanh **"Xác nhận show hoàn thành"** ở đầu trang chủ (chuông cũng đếm số show chờ xác nhận).
@@ -229,6 +236,7 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 data/
 ├── config.json        ← show, bầu show, thiết bị nhận thông báo
 ├── push-keys.json     ← khóa thông báo (app tự tạo, đừng xóa)
+├── banks.json         ← số tài khoản ngân hàng + ảnh QR
 ├── thuchi-2026.json   ← thu chi năm 2026
 └── thuchi-2027.json   ← thu chi năm 2027 …
 ```
@@ -306,6 +314,7 @@ kim1994/
 ├── api/ics.js              tạo file lịch nhắc
 ├── api/keys.js             link hẹn giờ (không bắt buộc)
 ├── api/shows.js            lịch show công khai (không có SĐT, tiền)
+├── api/banks.js            số tài khoản ngân hàng (xem công khai, sửa cần đăng nhập)
 ├── api/status.js           kiểm tra kết nối dữ liệu (Cài đặt)
 ├── server.js               máy chủ cho Render (Vercel không dùng)
 ├── api/_lib/…              phần dùng chung của máy chủ
