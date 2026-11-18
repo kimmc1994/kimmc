@@ -105,12 +105,12 @@
    },
    "time": "11:00",
    "repeat": "none",
-   "received": 0,
+   "received": 600000,
    "tip": 0,
    "note": "",
    "overrides": {},
    "createdAt": 1794984317556,
-   "updatedAt": 1794984319237
+   "updatedAt": 1794992320925
   },
   {
    "id": "mwlrq3ccow9kz",
