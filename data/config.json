@@ -85,6 +85,32 @@
    "overrides": {},
    "createdAt": 1794961950870,
    "updatedAt": 1794961952956
+  },
+  {
+   "id": "mwlrbfjooswgb",
+   "name": "tiệc cưới",
+   "host": "",
+   "bauId": "mwlrbfjon2nor",
+   "bauName": "âm thanh GIA ANH",
+   "address": "tú sơn-",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-12-06",
+   "lunar": {
+    "d": 28,
+    "m": 10,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "11:00",
+   "repeat": "none",
+   "received": 0,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1794984317556,
+   "updatedAt": 1794984319237
   }
  ],
  "bauShows": [
