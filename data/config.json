@@ -134,7 +134,13 @@
   },
   {
    "id": "mwle01at11x2g",
-   "name": "mc ngoc cảnh",
+   "name": "MC Ngọc Cảnh",
+   "contacts": [
+    {
+     "name": "C Cảnh",
+     "phone": "000000000"
+    }
+   ],
    "phone": "000000000"
   },
   {
