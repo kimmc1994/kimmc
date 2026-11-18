@@ -23,9 +23,16 @@
    "received": 600000,
    "tip": 0,
    "note": "",
-   "overrides": {},
+   "overrides": {
+    "2026-11-17": {
+     "received": 600000,
+     "tip": 0,
+     "status": "done",
+     "doneAt": 1794960747996
+    }
+   },
    "createdAt": 1794597802414,
-   "updatedAt": 1794597804385
+   "updatedAt": 1794960748386
   }
  ],
  "bauShows": [
