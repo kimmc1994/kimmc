@@ -220,6 +220,17 @@
     }
    ],
    "phone": "035 8055572"
+  },
+  {
+   "id": "mwlrsl26t13em",
+   "name": "nhà hàng thanh phong",
+   "contacts": [
+    {
+     "name": "a thanh phong",
+     "phone": "086 8233244"
+    }
+   ],
+   "phone": "086 8233244"
   }
  ],
  "pushSubs": [],
