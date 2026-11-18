@@ -51,14 +51,14 @@
     "y": 2026,
     "leap": 0
    },
-   "time": "17:00",
+   "time": "11:00",
    "repeat": "none",
    "received": 800000,
    "tip": 0,
    "note": "",
    "overrides": {},
    "createdAt": 1794961656272,
-   "updatedAt": 1794961656457
+   "updatedAt": 1794961725679
   }
  ],
  "bauShows": [
