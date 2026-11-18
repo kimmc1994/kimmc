@@ -33,6 +33,32 @@
    },
    "createdAt": 1794597802414,
    "updatedAt": 1794960748386
+  },
+  {
+   "id": "mwldtpzk5718h",
+   "name": "đám cưới -phan thiết",
+   "host": "",
+   "bauId": "",
+   "bauName": "",
+   "address": "invita balast",
+   "map": "https://maps.app.goo.gl/2NesAvK5NcfR63oVA?g_st=ic",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-11-28",
+   "lunar": {
+    "d": 20,
+    "m": 10,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "17:00",
+   "repeat": "none",
+   "received": 800000,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1794961656272,
+   "updatedAt": 1794961656457
   }
  ],
  "bauShows": [
