@@ -323,8 +323,9 @@
   function renderHeader() {
     var a = alerts();
     var nb = badgeCount();
-    var acc = canEdit()
-      ? '<button class="edit-pill on" data-act="end-edit" title="Bấm để thoát chế độ sửa">🔓 Sửa · còn ' + editLeft() + "'</button>"
+    // Đã đăng nhập: nút Đăng xuất (kèm thời gian còn sửa được). Chưa: nút Đăng nhập
+    var acc = logged()
+      ? '<button class="edit-pill out" data-act="logout" title="Đăng xuất khỏi máy này">' + icon('out') + '<span class="ep-t">Đăng xuất' + (canEdit() ? '<small>sửa còn ' + editLeft() + "'</small>" : '') + '</span></button>'
       : '<button class="edit-pill" data-act="login">' + icon('lock') + ' Đăng nhập</button>';
     $('#hdr-right').innerHTML = (logged() ? '<button class="icon-btn" data-act="bell" aria-label="Thông báo show">' + icon('bell') + (nb ? '<span class="badge">' + nb + '</span>' : '') + '</button>' : '') + acc;
   }
@@ -1178,7 +1179,7 @@
       '<li><b>Máy tính:</b> mở bằng Chrome/Edge → bấm biểu tượng <b>Cài đặt ứng dụng</b> ở cuối thanh địa chỉ.</li></ol></section>';
 
     h += '<section class="card glass"><h2>🔑 Tài khoản</h2><p class="hint" style="margin-top:0">Muốn đổi mật khẩu: vào Vercel → dự án kim1994 → Settings → Environment Variables → sửa <b>APP_PASSWORD</b> → Redeploy (xem Bước 9 trong HUONG-DAN.md). Nếu dùng Render thì đổi cả bên Render.</p>' +
-      '<button class="btn danger" data-act="lock-now">' + icon('lock') + ' Khóa app</button></section>';
+      '<button class="btn danger" data-act="logout">' + icon('out') + ' Đăng xuất</button></section>';
     h += '<section class="card glass"><div class="sec-h"><h2>🔌 Kiểm tra kết nối dữ liệu</h2><button class="btn btn-sm btn-primary" data-act="check-conn">Kiểm tra lại</button></div><div id="conn-out">' + connHTML() + '</div></section>';
     $('#view-settings').innerHTML = h;
     if (!state.conn || Date.now() - state.conn.at > 60000) checkConn();
@@ -1337,7 +1338,10 @@
       var v = el.dataset.view;
       closeSheet(); state.view = v; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    'lock-now': function () { if (confirm('Đăng xuất hẳn khỏi máy này? Lần sau phải nhập mật khẩu mới xem được dữ liệu.')) logout(); },
+    logout: function () {
+      if (!confirm('Đăng xuất khỏi máy này?\n\nPhần Thu chi, Báo cáo, Cài đặt, số điện thoại và tiền show sẽ ẩn cho tới khi đăng nhập lại. Lịch show vẫn xem được.')) return;
+      logout(); toast('Đã đăng xuất');
+    },
     'end-edit': function () { endEdit(); },
     login: function () { openLogin(); },
     stat: function (el) { state.statKey = el.dataset.k; render(); },

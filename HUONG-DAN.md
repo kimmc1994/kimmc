@@ -198,7 +198,7 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 
 ## Cách dùng nhanh
 
-- **Đăng nhập:** mở app là thấy ngay **Lịch show** và **lịch âm dương**, không cần mật khẩu (kể cả máy chưa đăng nhập). Khi chưa đăng nhập, app **ẩn phần Thu chi, Báo cáo, Cài đặt**, và ẩn **số điện thoại, tiền show** trong chi tiết show. Bấm **🔒 Đăng nhập** (góc phải trên) để hiện đủ. Máy đã đăng nhập 1 lần thì lần sau mở app là xem được hết. Khi **thêm, sửa, xóa** app mới hỏi lại mật khẩu; mỗi lần đăng nhập được **sửa trong 20 phút**, góc phải trên hiện **"🔓 Sửa · còn 18'"** (bấm vào để thoát sớm).
+- **Đăng nhập:** mở app là thấy ngay **Lịch show** và **lịch âm dương**, không cần mật khẩu (kể cả máy chưa đăng nhập). Khi chưa đăng nhập, app **ẩn phần Thu chi, Báo cáo, Cài đặt**, và ẩn **số điện thoại, tiền show** trong chi tiết show. Bấm **🔒 Đăng nhập** (góc phải trên) để hiện đủ. Máy đã đăng nhập 1 lần thì lần sau mở app là xem được hết. Khi **thêm, sửa, xóa** app mới hỏi lại mật khẩu; mỗi lần đăng nhập được **sửa trong 20 phút**, góc phải trên hiện nút đỏ **Đăng xuất** kèm dòng **"sửa còn 18'"**. Bấm **Đăng xuất** để thoát hẳn: app quay về chỉ xem lịch show, ẩn Thu chi, số điện thoại và tiền show cho tới khi đăng nhập lại. (Trong **Cài đặt** → **Tài khoản** cũng có nút **Đăng xuất**.)
 - **Trang chủ** (từ trên xuống):
   1. Hôm nay: ngày dương, ngày âm, hôm nay có show không, ngày lễ.
   2. **Lịch show**: các show sắp tới, nhóm theo ngày (Hôm nay / Ngày mai / Ngày kia…), có giờ và buổi (sáng, chiều, tối) tô màu khác nhau. Chạm 1 show để xem đầy đủ, gọi, mở bản đồ.

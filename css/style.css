@@ -699,3 +699,9 @@ h2 { font-weight: 800; }
 .ib-zalo { background: #0068FF; }
 .bau-who { flex: 0 1 auto; min-width: 64px; margin-right: 4px; }
 .pub-note { margin: 6px 0 2px; font-size: 14px; color: var(--text3); }
+/* Nút Đăng xuất trên thanh trên */
+.edit-pill.out { background: rgba(220, 38, 38, .1); color: #DC2626; border: 1.5px solid rgba(220, 38, 38, .35); padding: 0 11px; }
+.edit-pill .ep-t { display: grid; line-height: 1.1; text-align: left; }
+.edit-pill .ep-t small { font-size: 11.5px; font-weight: 700; color: #15803D; }
+@media (prefers-color-scheme: dark) { .edit-pill.out { color: #FCA5A5; } .edit-pill .ep-t small { color: #86EFAC; } }
+.brand { min-width: 0; flex: 1; }
