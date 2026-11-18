@@ -111,6 +111,32 @@
    "overrides": {},
    "createdAt": 1794984317556,
    "updatedAt": 1794984319237
+  },
+  {
+   "id": "mwlrq3ccow9kz",
+   "name": "tiệc cưới",
+   "host": "",
+   "bauId": "mwfcxr5qzoguv",
+   "bauName": "Dịch Vụ Huy Hiền",
+   "address": "sông bình -",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-12-19",
+   "lunar": {
+    "d": 11,
+    "m": 11,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "11:00",
+   "repeat": "none",
+   "received": 1000000,
+   "tip": 0,
+   "note": "khai trương nhà hàng",
+   "overrides": {},
+   "createdAt": 1794985001580,
+   "updatedAt": 1794985001814
   }
  ],
  "bauShows": [
