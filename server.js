@@ -11,7 +11,7 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json', '.png': 'image/png',
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8'
 };
-const API = ['login', 'data', 'push', 'cron', 'ics', 'keys', 'status'];
+const API = ['login', 'data', 'push', 'cron', 'ics', 'keys', 'status', 'shows'];
 const BLOCK = /^\/(api\/_lib|node_modules|server\.js|package(-lock)?\.json|\.)/;
 
 // Bổ sung các hàm giống Vercel: res.status(), res.json(), res.send(), req.query, req.body

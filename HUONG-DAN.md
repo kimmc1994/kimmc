@@ -198,7 +198,7 @@ Vào kho **kim1994** trên GitHub → **Add file** → **Upload files** → kéo
 
 ## Cách dùng nhanh
 
-- **Đăng nhập:** máy nào đăng nhập 1 lần rồi thì **mở app là xem được ngay**, không cần mật khẩu. Khi bấm **Thêm show**, **Thêm Thu Chi**, sửa hoặc xóa, app mới hỏi mật khẩu. Mỗi lần đăng nhập được **sửa trong 20 phút**; góc phải trên hiện **"🔓 Sửa · còn 18'"**, bấm vào đó để thoát chế độ sửa sớm. Hết 20 phút, nút đổi thành **🔒 Đăng nhập**.
+- **Đăng nhập:** mở app là thấy ngay **Lịch show** và **lịch âm dương**, không cần mật khẩu (kể cả máy chưa đăng nhập). Khi chưa đăng nhập, app **ẩn phần Thu chi, Báo cáo, Cài đặt**, và ẩn **số điện thoại, tiền show** trong chi tiết show. Bấm **🔒 Đăng nhập** (góc phải trên) để hiện đủ. Máy đã đăng nhập 1 lần thì lần sau mở app là xem được hết. Khi **thêm, sửa, xóa** app mới hỏi lại mật khẩu; mỗi lần đăng nhập được **sửa trong 20 phút**, góc phải trên hiện **"🔓 Sửa · còn 18'"** (bấm vào để thoát sớm).
 - **Trang chủ** (từ trên xuống):
   1. Hôm nay: ngày dương, ngày âm, hôm nay có show không, ngày lễ.
   2. **Lịch show**: các show sắp tới, nhóm theo ngày (Hôm nay / Ngày mai / Ngày kia…), có giờ và buổi (sáng, chiều, tối) tô màu khác nhau. Chạm 1 show để xem đầy đủ, gọi, mở bản đồ.
@@ -305,6 +305,7 @@ kim1994/
 ├── api/cron.js             gửi nhắc trước 3 ngày / 1 ngày / 1 tiếng
 ├── api/ics.js              tạo file lịch nhắc
 ├── api/keys.js             link hẹn giờ (không bắt buộc)
+├── api/shows.js            lịch show công khai (không có SĐT, tiền)
 ├── api/status.js           kiểm tra kết nối dữ liệu (Cài đặt)
 ├── server.js               máy chủ cho Render (Vercel không dùng)
 ├── api/_lib/…              phần dùng chung của máy chủ

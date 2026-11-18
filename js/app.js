@@ -106,6 +106,19 @@
       if (c) { state.shows = c.shows || []; state.baus = c.baus || []; state.entries = c.entries || {}; state.years = c.years || []; state.storage = c.storage || null; state.vapidPublic = c.vapidPublic || null; }
     } catch (e) { }
   }
+  // Lịch show công khai cho máy chưa đăng nhập
+  function loadPublic() {
+    return fetch('/api/shows').then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Lỗi ' + r.status); return j; }); })
+      .then(function (j) {
+        if (logged()) return;
+        state.shows = j.shows || []; state.baus = j.bauShows || [];
+        lsSet('kim_pub', JSON.stringify({ shows: state.shows, baus: state.baus }));
+        render();
+      }).catch(function (e) { toast('Chưa tải được lịch show: ' + e.message, 'err'); });
+  }
+  function loadPublicCache() {
+    try { var c = JSON.parse(lsGet('kim_pub') || 'null'); if (c) { state.shows = c.shows || []; state.baus = c.baus || []; } } catch (e) { }
+  }
   function ensureYear(y) {
     y = String(y);
     if (state.fresh[y] === true) return Promise.resolve();
@@ -299,7 +312,7 @@
     }).join('');
     renderHeader();
     $$('.view').forEach(function (el) { el.hidden = el.id !== 'view-' + state.view; });
-    if (!logged() && state.view !== 'home') { $('#view-' + state.view).innerHTML = loginCard(); return; }
+    if (!logged() && state.view !== 'home' && state.view !== 'shows') { $('#view-' + state.view).innerHTML = loginCard(); return; }
     if (state.view === 'home') renderHome();
     else if (state.view === 'shows') renderShows();
     else if (state.view === 'money') renderMoney();
@@ -318,7 +331,7 @@
 
   /* ---------- Đăng nhập: xem không cần mật khẩu, thêm/sửa/xóa cần mật khẩu (phiên 20 phút) ---------- */
   function loginCard() {
-    return '<section class="card glass login-card"><div><h2>Đăng nhập 1 lần trên máy này</h2><p class="hint">Sau lần đầu, mở app là xem được ngay. Khi thêm, sửa hoặc xóa mới cần nhập lại mật khẩu (mỗi lần dùng được 20 phút).</p></div>' +
+    return '<section class="card glass login-card"><div><h2>🔒 Cần đăng nhập</h2><p class="hint">Phần này chỉ hiện sau khi đăng nhập. Máy đã đăng nhập 1 lần thì lần sau mở app là xem được ngay; thêm, sửa, xóa mới cần nhập lại mật khẩu (mỗi lần dùng được 20 phút).</p></div>' +
       '<button class="btn btn-primary" data-act="login">' + icon('lock') + ' Đăng nhập</button></section>';
   }
   var afterLogin = null;
@@ -430,7 +443,7 @@
       '<div class="h-lun"><div class="h-lbl">Âm lịch</div><div class="h-big lunar">' + L.day + '</div><div class="h-wd">Tháng ' + L.month + (L.leap ? ' nhuận' : '') + '</div><div class="h-my">Năm ' + C.canChi(L.year) + '</div></div></div>' +
       '<div class="hero-chips">' + (todayShows ? '<span class="chip-show">🎤 Hôm nay có ' + todayShows + ' show</span>' : '<span class="chip-soft">Hôm nay không có show</span>') +
       hs.map(function (x) { return '<span class="chip-hol ' + x.type + '">🎉 ' + esc(x.name) + '</span>'; }).join('') + '</div></section>';
-    if (!logged()) { $('#view-home').innerHTML = h + loginCard() + calendarBlock(); return; }
+    if (!logged()) { $('#view-home').innerHTML = h + showSchedule() + calendarBlock(); return; }
     h += notifyBlock() + confirmBlock() + phoneAlert();
     h += '<div class="wide-2">' + showSchedule() + statsBlock(true) + '</div>';
     h += calendarBlock();
@@ -638,8 +651,9 @@
           '<div style="margin-top:8px">' + line('Tổng thu (gồm show)', S.thu, 'pos') + line('Tổng chi', S.chi, 'neg') + line('Còn lại', S.con, S.con < 0 ? 'neg' : 'pos') + '</div>';
         f = '<button class="btn btn-add-money" data-act="add-entry" data-d="' + s + '">' + icon('plus') + ' Thêm Thu Chi</button><button class="btn btn-primary" data-act="add-show" data-d="' + s + '">' + icon('plus') + ' Thêm show</button>';
       } else {
-        b += '<p class="hint" style="margin-top:14px">Đăng nhập để xem và thêm show, thu chi của ngày này.</p>';
-        f = '<button class="btn btn-primary" data-act="login">Đăng nhập</button>';
+        var occP = C.activeOcc(state.shows, s, s);
+        b += '<h3 class="sub-h">Show trong ngày</h3>' + (occP.length ? '<div class="stack">' + occP.map(function (o) { return showCard(o, true); }).join('') + '</div>' : '<p class="hint">Chưa có show.</p>');
+        f = '';
       }
       openSheet('Chi tiết ngày', b, f);
     };
@@ -670,6 +684,8 @@
           ? '<button class="btn btn-sm" data-act="confirm-show" data-id="' + sh.id + '" data-d="' + s + '">' + icon('money') + ' Sửa tiền</button>'
           : '<button class="btn btn-sm" data-act="cancel-show" data-id="' + sh.id + '" data-d="' + s + '">📝 Sửa lý do</button>' +
             '<button class="btn btn-sm" data-act="reset-show" data-id="' + sh.id + '" data-d="' + s + '">↩️ Khôi phục show</button>';
+    var pub = !logged();
+    if (pub) actions = st === 'future' ? '<button class="btn btn-sm" data-act="ics" data-id="' + sh.id + '" data-d="' + s + '">' + icon('alarm') + ' Thêm vào lịch nhắc</button>' : '';
     return '<article class="show-card ' + (compact ? 'inner' : 'glass') + (past ? ' past' : '') + (st === 'cancel' ? ' cancelled' : '') + '">' +
       '<div class="sc-date"><div class="sc-d">' + p.d + '</div><div class="sc-m">Tháng ' + p.m + '</div><div class="sc-l">' + L.day + '/' + L.month + (L.leap ? 'N' : '') + ' âm</div></div>' +
       '<div class="sc-body"><span class="tbadge t-' + P.key + '">' + P.icon + ' Show ' + P.name.toLowerCase() + ' · ' + P.clock + '</span>' +
@@ -679,23 +695,26 @@
       (sh.address ? '<div class="place">' + icon('pin') + '<span>Địa điểm: ' + esc(sh.address) + '</span></div>' : '') +
 
       (sh.note ? '<div>' + icon('note') + '<span>' + esc(sh.note) + '</span></div>' : '') + '</div>' +
-      (sh.phone ? '<div class="contact"><span class="who">SĐT liên hệ: ' + esc(sh.phone) + '</span>' + contactBtns(sh.phone) + '</div>' : '') +
-      (bn ? '<div class="bau-box"><div class="bau-title">' + icon('star') + '<span>Tên CTy, Tên Dịch Vụ: <b>' + esc(bn) + '</b></span></div>' +
+      (pub ? (bn ? '<div class="bau-box"><div class="bau-title">' + icon('star') + '<span>Tên CTy, Tên Dịch Vụ: <b>' + esc(bn) + '</b></span></div></div>' : '') +
+        '<p class="pub-note">🔒 Đăng nhập để xem số điện thoại và tiền show.</p>' : '') +
+      (!pub && sh.phone ? '<div class="contact"><span class="who">SĐT liên hệ: ' + esc(sh.phone) + '</span>' + contactBtns(sh.phone) + '</div>' : '') +
+      (!pub && bn ? '<div class="bau-box"><div class="bau-title">' + icon('star') + '<span>Tên CTy, Tên Dịch Vụ: <b>' + esc(bn) + '</b></span></div>' +
         contactsOf(bau).filter(function (c) { return c.phone; }).map(function (c) {
           return '<div class="bau-line"><span class="bau-who">' + esc(c.name || c.phone) + ':</span>' + iconBtns(c.phone, c.name || bn) + '</div>';
         }).join('') + '</div>' : '') +
-      (st === 'cancel' ? '' : '<div class="money-line' + (st === 'done' ? '' : ' expected') + '"><span>' + (st === 'done' ? 'Đã nhận' : 'Dự kiến nhận') + ': <b>' + fmt(m.received) + '</b></span><span>Bo show: <b>' + (m.tip ? fmt(m.tip) : 'chưa nhập') + '</b></span>' +
+      (st === 'cancel' || pub ? '' : '<div class="money-line' + (st === 'done' ? '' : ' expected') + '"><span>' + (st === 'done' ? 'Đã nhận' : 'Dự kiến nhận') + ': <b>' + fmt(m.received) + '</b></span><span>Bo show: <b>' + (m.tip ? fmt(m.tip) : 'chưa nhập') + '</b></span>' +
         (m.other ? '<span>Khác: <b>' + fmt(m.other) + '</b>' + (m.otherNote ? ' (' + esc(m.otherNote) + ')' : '') + '</span>' : '') + '</div>') +
       '<div class="sc-actions">' + mapBtn +
-      actions +
+      actions + (pub ? '' :
       '<button class="btn btn-sm" data-act="edit-show" data-id="' + sh.id + '">' + icon('edit') + ' Sửa</button>' +
-      '<button class="btn btn-sm danger" data-act="del-show" data-id="' + sh.id + '" aria-label="Xóa show">' + icon('trash') + '</button>' +
+      '<button class="btn btn-sm danger" data-act="del-show" data-id="' + sh.id + '" aria-label="Xóa show">' + icon('trash') + '</button>') +
       '</div></div></article>';
   }
 
   /* ---------- Trang Show ---------- */
   function renderShows() {
-    var h = '<div class="color-tabs"><button class="ct ct-show' + (state.showTab === 'list' ? ' on' : '') + '" data-act="show-tab" data-t="list">🎤 Danh sách show</button>' +
+    if (!logged()) state.showTab = 'list';
+    var h = !logged() ? '' : '<div class="color-tabs"><button class="ct ct-show' + (state.showTab === 'list' ? ' on' : '') + '" data-act="show-tab" data-t="list">🎤 Danh sách show</button>' +
       '<button class="ct ct-bau' + (state.showTab === 'bau' ? ' on' : '') + '" data-act="show-tab" data-t="bau">⭐ Bầu show (' + state.baus.length + ')</button></div>';
     if (state.showTab === 'list') {
       h += '<div class="toolbar"><div class="seg"><button class="' + (state.showFilter === 'upcoming' ? 'on' : '') + '" data-act="show-filter" data-f="upcoming">Sắp tới</button>' +
@@ -1295,7 +1314,7 @@
     closeSheet();
     if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
     if (expired) toast('Cần đăng nhập lại trên máy này', 'err');
-    render();
+    loadPublicCache(); render(); loadPublic();
   }
 
   function openBell() {
@@ -1450,6 +1469,7 @@
   });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+    if (document.visibilityState === 'visible' && !logged()) { loadPublic(); return; }
     if (document.visibilityState === 'visible' && logged()) {
       state.fresh = {};
       ensureYear(new Date().getFullYear()).then(render, function () { });
@@ -1461,6 +1481,7 @@
   if (logged()) loadCache();
   render();
   if (logged()) ensureYear(new Date().getFullYear()).then(render, function (e) { toast(e.message, 'err'); });
+  else { loadPublicCache(); render(); loadPublic(); }
   setInterval(function () { renderHeader(); if (logged()) { updateBadge(); localNotify(); } }, 30000);
   setTimeout(localNotify, 3000);
   setTimeout(function () { if (logged()) syncPushFlag(); }, 2500);

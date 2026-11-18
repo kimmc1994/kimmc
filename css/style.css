@@ -698,3 +698,4 @@ h2 { font-weight: 800; }
 .ib-call { background: #2FB350; }
 .ib-zalo { background: #0068FF; }
 .bau-who { flex: 0 1 auto; min-width: 64px; margin-right: 4px; }
+.pub-note { margin: 6px 0 2px; font-size: 14px; color: var(--text3); }

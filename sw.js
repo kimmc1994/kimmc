@@ -1,5 +1,5 @@
 // Service worker: chạy offline + nhận thông báo đẩy + số trên icon app
-const CACHE = 'kim1994-v9';
+const CACHE = 'kim1994-v10';
 const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/lib/lunar.js', '/lib/core.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
