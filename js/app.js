@@ -553,7 +553,7 @@
   function cancelShow(id, s) {
     var sh = state.shows.find(function (x) { return x.id === id; }); if (!sh) return;
     var future = C.showTimeUTC(s, sh.time) > Date.now(), P = C.period(sh.time), m = C.money(sh, s);
-    var REASONS = ['Khách hủy tiệc', 'Đổi ngày tiệc', 'Trùng lịch show khác', 'Bận việc riêng', 'Sức khỏe', 'Thời tiết xấu', 'Bầu show đổi người'];
+    var REASONS = ['Khách hủy tiệc', 'Đổi ngày tiệc', 'Trùng lịch show khác', 'Bận việc riêng', 'Sức khỏe', 'Thời tiết xấu', 'Bên dịch vụ đổi người'];
     var b = '<div class="cf-head"><b class="cf-name">' + esc(sh.name) + '</b><br>' + C.weekday(s) + ', ' + dmy(s) + ' · ' + P.icon + ' ' + P.text + '</div>' +
       '<div class="cancel-warn">Show này sẽ <b>không tính tiền</b>' + (future ? ' và <b>không nhắc nữa</b>' : '') + ', bị gạch tên và bỏ khỏi lịch.</div>' +
       '<input type="hidden" id="cx-id" value="' + esc(id) + '"><input type="hidden" id="cx-d" value="' + s + '">' +
@@ -590,7 +590,7 @@
     var list = phoneTodo(); if (!list.length) return '';
     return '<section class="card warn"><div class="warn-h">📞 Cần cập nhật số điện thoại (' + list.length + ')</div>' +
       list.map(function (x) {
-        return '<div class="warn-row"><span><b>' + (x.kind === 'bau' ? 'Bầu show ' : 'Show ') + esc(x.name) + '</b><br><small>Đang để số tạm ' + esc(x.phone) +
+        return '<div class="warn-row"><span><b>' + (x.kind === 'bau' ? '' : 'Show ') + esc(x.name) + '</b><br><small>Đang để số tạm ' + esc(x.phone) +
           (x.when ? ' · diễn ' + dm(x.when) : '') + '</small></span>' +
           '<button class="btn btn-sm" data-act="' + (x.kind === 'bau' ? 'edit-bau' : 'edit-show') + '" data-id="' + x.id + '">' + icon('edit') + ' Cập nhật</button></div>';
       }).join('') + '</section>';
@@ -721,17 +721,17 @@
   function renderShows() {
     if (!logged()) state.showTab = 'list';
     var h = !logged() ? '' : '<div class="color-tabs"><button class="ct ct-show' + (state.showTab === 'list' ? ' on' : '') + '" data-act="show-tab" data-t="list">🎤 Danh sách show</button>' +
-      '<button class="ct ct-bau' + (state.showTab === 'bau' ? ' on' : '') + '" data-act="show-tab" data-t="bau">⭐ Bầu show (' + state.baus.length + ')</button></div>';
+      '<button class="ct ct-bau' + (state.showTab === 'bau' ? ' on' : '') + '" data-act="show-tab" data-t="bau">⭐ CTy / Dịch Vụ (' + state.baus.length + ')</button></div>';
     if (state.showTab === 'list') {
       h += '<div class="toolbar"><div class="seg"><button class="' + (state.showFilter === 'upcoming' ? 'on' : '') + '" data-act="show-filter" data-f="upcoming">Sắp tới</button>' +
         '<button class="' + (state.showFilter === 'past' ? 'on' : '') + '" data-act="show-filter" data-f="past">Đã diễn</button></div>' +
         '<button class="btn btn-primary" data-act="add-show">' + icon('plus') + ' Thêm show</button></div>' +
-        '<input class="inp" id="show-q" type="search" placeholder="Tìm tên show, chủ tiệc, bầu show, địa chỉ…" value="' + esc(state.showQuery) + '" aria-label="Tìm show">' +
+        '<input class="inp" id="show-q" type="search" placeholder="Tìm tên show, chủ tiệc, CTy / dịch vụ, địa điểm…" value="' + esc(state.showQuery) + '" aria-label="Tìm show">' +
         '<div id="show-list" class="stack"></div>';
       $('#view-shows').innerHTML = h;
       fillShowList();
     } else {
-      h += '<section class="card glass"><div class="sec-h"><h2>Danh sách bầu show</h2><button class="btn btn-sm btn-primary" data-act="add-bau">' + icon('plus') + ' Thêm bầu show</button></div>' +
+      h += '<section class="card glass"><div class="sec-h"><h2>Danh Sách CTy / Dịch Vụ</h2><button class="btn btn-sm btn-primary" data-act="add-bau">' + icon('plus') + ' Thêm CTy / Dịch Vụ</button></div>' +
         '<p class="hint" style="margin-top:0">Nhập sẵn tên CTy / dịch vụ và các người liên hệ. Khi thêm show chỉ cần chọn tên.</p>' +
         (state.baus.length ? '<div class="stack">' + state.baus.slice().sort(function (a, b) { return a.name.localeCompare(b.name, 'vi'); }).map(function (b) {
           var cnt = state.shows.filter(function (s) { return s.bauId === b.id; }).length;
@@ -740,7 +740,7 @@
             cs.map(function (c) { return '<div class="bau-ct"><span><b>' + esc(c.name || 'Liên hệ') + '</b>' + (c.phone ? ' · ' + esc(c.phone) : '') + '</span>' + (c.phone ? '<span class="row-btns">' + contactBtns(c.phone) + '</span>' : '') + '</div>'; }).join('') + '</div>' +
             '<button class="icon-btn sm" data-act="edit-bau" data-id="' + b.id + '" aria-label="Sửa">' + icon('edit') + '</button>' +
             '<button class="icon-btn sm danger" data-act="del-bau" data-id="' + b.id + '" aria-label="Xóa">' + icon('trash') + '</button></div>';
-        }).join('') + '</div>' : '<p class="empty-state">Chưa có bầu show nào. Bấm “Thêm bầu show” để nhập.</p>') + '</section>';
+        }).join('') + '</div>' : '<p class="empty-state">Chưa có CTy / dịch vụ nào. Bấm “Thêm CTy / Dịch Vụ” để nhập.</p>') + '</section>';
       $('#view-shows').innerHTML = h;
     }
   }
@@ -769,12 +769,12 @@
       '<div class="field"><label for="sf-name">Tên show *</label><input class="inp" id="sf-name" maxlength="120" value="' + v('name') + '" placeholder="VD: Đám cưới anh Tuấn – chị Lan"></div>' +
       '<div class="field"><label for="sf-host">Chủ tiệc</label><input class="inp" id="sf-host" maxlength="120" value="' + v('host') + '"></div>' +
       '<div class="field"><label for="sf-phone">SĐT liên hệ (chủ tiệc)</label><input class="inp" id="sf-phone" type="tel" inputmode="tel" maxlength="30" value="' + v('phone') + '"></div>' +
-      '<div class="field"><label for="sf-bau">Bầu show (Tên CTy, Tên Dịch Vụ)</label><select class="inp" id="sf-bau"><option value="">Không có bầu show</option>' +
+      '<div class="field"><label for="sf-bau">Thêm Dịch Vụ Show</label><select class="inp" id="sf-bau"><option value="">Không có dịch vụ</option>' +
       state.baus.map(function (x) { var c0 = contactsOf(x)[0]; return opt(x.id, sh ? sh.bauId : '', esc(x.name) + (c0 ? ' · ' + esc([c0.name, c0.phone].filter(Boolean).join(' ')) : '')); }).join('') +
-      '<option value="__new">+ Thêm bầu show mới…</option></select>' +
+      '<option value="__new">+ Thêm CTy / Dịch Vụ mới…</option></select>' +
       '<div id="sf-nb" hidden><input class="inp" id="sf-nb-name" placeholder="Tên CTy, Tên Dịch Vụ" style="margin-top:8px">' +
       '<div class="grid2" style="margin-top:8px"><input class="inp" id="sf-nb-cname" placeholder="Tên người liên hệ"><input class="inp" id="sf-nb-phone" type="tel" inputmode="tel" placeholder="SĐT"></div>' +
-      '<div class="hint">Muốn thêm nhiều SĐT: vào tab Show → Bầu show → bấm Sửa → Thêm SĐT.</div></div></div>' +
+      '<div class="hint">Muốn thêm nhiều SĐT: vào tab Show → CTy / Dịch Vụ → bấm Sửa → Thêm SĐT.</div></div></div>' +
       '<div class="field"><label for="sf-addr">Địa Điểm</label><textarea class="inp" id="sf-addr" rows="2" maxlength="400">' + v('address') + '</textarea></div>' +
       '<div class="field"><label for="sf-map">Link Google Map</label><input class="inp" id="sf-map" inputmode="url" maxlength="600" value="' + v('map') + '" placeholder="Dán link Google Maps vào đây"></div>' +
       '<div class="field"><span class="lbl">Ngày nhận show</span><div class="seg"><button type="button" data-act="date-type" data-t="am" class="' + (dt === 'am' ? 'on' : '') + '">🌙 Âm lịch</button>' +
@@ -873,7 +873,7 @@
     var bauId = $('#sf-bau').value, pre = Promise.resolve(true), newBau = null;
     if (bauId === '__new') {
       var bn = $('#sf-nb-name').value.trim();
-      if (!bn) return toast('Nhập Tên CTy, Tên Dịch Vụ của bầu show mới', 'err');
+      if (!bn) return toast('Nhập Tên CTy, Tên Dịch Vụ', 'err');
       var nbc = { name: $('#sf-nb-cname').value.trim(), phone: $('#sf-nb-phone').value.trim() };
       newBau = { id: uid(), name: bn, contacts: nbc.name || nbc.phone ? [nbc] : [], phone: nbc.phone };
       bauId = newBau.id;
@@ -1081,7 +1081,7 @@
   function openBau(id) {
     var b = id ? state.baus.find(function (x) { return x.id === id; }) : null;
     var cs = contactsOf(b); if (!cs.length) cs = [{ name: '', phone: '' }];
-    openSheet(b ? 'Sửa bầu show' : 'Thêm bầu show',
+    openSheet(b ? 'Sửa CTy / Dịch Vụ' : 'Thêm CTy / Dịch Vụ',
       '<input type="hidden" id="bf-id" value="' + (b ? b.id : '') + '">' +
       '<div class="field"><label for="bf-name">Tên CTy, Tên Dịch Vụ *</label><input class="inp" id="bf-name" maxlength="120" placeholder="VD: Cty INVITA PALACE" value="' + esc(b ? b.name : '') + '"></div>' +
       '<div id="bf-contacts">' + cs.map(contactRow).join('') + '</div>' +
@@ -1105,7 +1105,7 @@
   }
   function delBau(id) {
     var b = state.baus.find(function (x) { return x.id === id; }); if (!b) return;
-    if (!confirm('Xóa bầu show “' + b.name + '”? Các show cũ vẫn giữ nguyên.')) return;
+    if (!confirm('Xóa “' + b.name + '” khỏi danh sách CTy / Dịch Vụ? Các show cũ vẫn giữ nguyên.')) return;
     persist('bau', 'delete', id).then(function (ok) { if (ok) toast('Đã xóa'); render(); });
     render();
   }
@@ -1303,7 +1303,7 @@
       (ys.length ? '<div class="row-btns"><select class="inp" id="del-year" style="width:auto;min-width:130px">' + ys.map(function (y) { return '<option value="' + y + '">' + y + (Number(y) >= new Date().getFullYear() ? ' (năm hiện tại)' : '') + '</option>'; }).join('') + '</select>' +
         '<button class="btn btn-red" data-act="del-year">' + icon('trash') + ' Xóa năm này</button></div>' : '<p class="hint">Chưa có dữ liệu.</p>') + '</section>';
 
-    h += '<section class="card glass"><h2>📦 Sao lưu</h2><p class="hint" style="margin-top:0">Tải toàn bộ show, bầu show và thu chi về máy dưới dạng 1 file.</p><button class="btn" data-act="backup">Tải file sao lưu</button></section>';
+    h += '<section class="card glass"><h2>📦 Sao lưu</h2><p class="hint" style="margin-top:0">Tải toàn bộ show, CTy / dịch vụ, số tài khoản và thu chi về máy dưới dạng 1 file.</p><button class="btn" data-act="backup">Tải file sao lưu</button></section>';
 
     h += '<section class="card glass"><h2>📱 Thêm app vào màn hình</h2><ol class="steps">' +
       '<li><b>iPhone / iPad:</b> mở kim1994.vercel.app bằng <b>Safari</b> → bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên) → kéo xuống chọn <b>Thêm vào MH chính</b> → bấm <b>Thêm</b>.</li>' +
