@@ -262,6 +262,15 @@
    "amount": 360000,
    "note": "",
    "updatedAt": 1794984806110
+  },
+  {
+   "id": "mwnn8qrnkyqd0",
+   "date": "2026-11-19",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 115000,
+   "note": "",
+   "updatedAt": 1795098406019
   }
  ]
 }
