@@ -289,6 +289,15 @@
    "amount": 320000,
    "note": "",
    "updatedAt": 1795098454504
+  },
+  {
+   "id": "mwnnaphxlelne",
+   "date": "2026-11-19",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 250000,
+   "note": "",
+   "updatedAt": 1795098497685
   }
  ]
 }
