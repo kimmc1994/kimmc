@@ -137,6 +137,32 @@
    "overrides": {},
    "createdAt": 1794985001580,
    "updatedAt": 1794985001814
+  },
+  {
+   "id": "mwpxdavrfse27",
+   "name": "tiệc cưới",
+   "host": "",
+   "bauId": "mwpxdavrmk9cs",
+   "bauName": "DV:HÙNG HƯƠNG",
+   "address": "hàm đức",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-12-12",
+   "lunar": {
+    "d": 4,
+    "m": 11,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "11:44",
+   "repeat": "none",
+   "received": 1,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1795236347223,
+   "updatedAt": 1795236349355
   }
  ],
  "bauShows": [
