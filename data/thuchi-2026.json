@@ -325,6 +325,15 @@
    "amount": 360000,
    "note": "",
    "updatedAt": 1795272788755
+  },
+  {
+   "id": "mwqj399sv2l55",
+   "date": "2026-11-21",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 330000,
+   "note": "",
+   "updatedAt": 1795272830128
   }
  ]
 }
