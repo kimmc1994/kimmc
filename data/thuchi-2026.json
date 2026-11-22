@@ -343,6 +343,15 @@
    "amount": 360000,
    "note": "",
    "updatedAt": 1795354581254
+  },
+  {
+   "id": "mwrvskcke33y1",
+   "date": "2026-11-22",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 360000,
+   "note": "",
+   "updatedAt": 1795354632452
   }
  ]
 }
