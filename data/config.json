@@ -163,6 +163,32 @@
    "overrides": {},
    "createdAt": 1795236347223,
    "updatedAt": 1795236349355
+  },
+  {
+   "id": "mwsv6nslgisaa",
+   "name": "tiệc cưới",
+   "host": "",
+   "bauId": "mwsv6nslmdv63",
+   "bauName": "mc vân trường",
+   "address": "hoàng phat -mũi né",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-12-20",
+   "lunar": {
+    "d": 12,
+    "m": 11,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "11:00",
+   "repeat": "none",
+   "received": 0,
+   "tip": 0,
+   "note": "",
+   "overrides": {},
+   "createdAt": 1795414076661,
+   "updatedAt": 1795414078485
   }
  ],
  "bauShows": [
