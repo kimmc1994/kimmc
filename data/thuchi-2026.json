@@ -352,6 +352,15 @@
    "amount": 360000,
    "note": "",
    "updatedAt": 1795354632452
+  },
+  {
+   "id": "mwunidoukyn1x",
+   "date": "2026-11-24",
+   "type": "thu",
+   "cat": "botiem",
+   "amount": 50000,
+   "note": "",
+   "updatedAt": 1795522118862
   }
  ]
 }
