@@ -361,6 +361,15 @@
    "amount": 50000,
    "note": "",
    "updatedAt": 1795522118862
+  },
+  {
+   "id": "mwunilej76v3k",
+   "date": "2026-11-24",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 150000,
+   "note": "",
+   "updatedAt": 1795522128859
   }
  ]
 }
