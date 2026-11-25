@@ -189,6 +189,32 @@
    "overrides": {},
    "createdAt": 1795414076661,
    "updatedAt": 1795414320858
+  },
+  {
+   "id": "mwvxsdhrfwuli",
+   "name": "đám cưới ở sài gòn",
+   "host": "",
+   "bauId": "",
+   "bauName": "",
+   "address": "sài gòn",
+   "map": "",
+   "phone": "",
+   "dateType": "am",
+   "date": "2026-12-08",
+   "lunar": {
+    "d": 30,
+    "m": 10,
+    "y": 2026,
+    "leap": 0
+   },
+   "time": "16:00",
+   "repeat": "none",
+   "received": 1111,
+   "tip": 0,
+   "note": "ngày 29 đến 1 âm lịch",
+   "overrides": {},
+   "createdAt": 1795599847503,
+   "updatedAt": 1795599848030
   }
  ],
  "bauShows": [
