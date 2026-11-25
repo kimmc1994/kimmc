@@ -379,6 +379,15 @@
    "amount": 245000,
    "note": "",
    "updatedAt": 1795603105375
+  },
+  {
+   "id": "mwvzqf5xryb29",
+   "date": "2026-11-25",
+   "type": "thu",
+   "cat": "botiem",
+   "amount": 330000,
+   "note": "",
+   "updatedAt": 1795603115589
   }
  ]
 }
