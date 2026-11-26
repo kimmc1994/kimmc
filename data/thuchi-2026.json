@@ -397,6 +397,15 @@
    "amount": 600000,
    "note": "",
    "updatedAt": 1795691728241
+  },
+  {
+   "id": "mwxgiko75svl2",
+   "date": "2026-11-26",
+   "type": "thu",
+   "cat": "tiemtoc",
+   "amount": 340000,
+   "note": "",
+   "updatedAt": 1795691769127
   }
  ]
 }
