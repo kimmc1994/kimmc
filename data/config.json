@@ -82,9 +82,16 @@
    "received": 700000,
    "tip": 0,
    "note": "",
-   "overrides": {},
+   "overrides": {
+    "2026-11-28": {
+     "received": 700000,
+     "tip": 0,
+     "status": "done",
+     "doneAt": 1795875290664
+    }
+   },
    "createdAt": 1794961950870,
-   "updatedAt": 1795875281072
+   "updatedAt": 1795875291082
   },
   {
    "id": "mwlrbfjooswgb",
