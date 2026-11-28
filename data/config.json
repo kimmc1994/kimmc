@@ -65,7 +65,7 @@
    "name": "tiệc cưới -phan thiết",
    "host": "",
    "bauId": "mwle01at11x2g",
-   "bauName": "mc ngoc cảnh",
+   "bauName": "MC Ngọc Cảnh",
    "address": "cảng phan thiết",
    "map": "",
    "phone": "",
@@ -79,12 +79,12 @@
    },
    "time": "17:00",
    "repeat": "none",
-   "received": 600000,
+   "received": 700000,
    "tip": 0,
    "note": "",
    "overrides": {},
    "createdAt": 1794961950870,
-   "updatedAt": 1794961952956
+   "updatedAt": 1795875281072
   },
   {
    "id": "mwlrbfjooswgb",
